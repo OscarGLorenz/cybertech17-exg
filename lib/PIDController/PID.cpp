@@ -1,6 +1,6 @@
 #include "PID.h"
 
-PID::PID(double (*input)(void),void (*output)(double), double maxDerivative, double maxIntegra) {
+PID::PID(int (*input)(void),void (*output)(int), double maxDerivative, double maxIntegral) {
 	in = input;
 	out = output;
 	_ki = 0;
@@ -14,7 +14,7 @@ PID::PID(double (*input)(void),void (*output)(double), double maxDerivative, dou
 
 void PID::setKp(int kp) {
 	_kp = kp;
-
+}
 
 void PID::setKd(int kd) {
 	_kd = kd;

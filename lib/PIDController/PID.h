@@ -3,7 +3,7 @@
 
 class PID {
 public:
-	PID(double (*input)(void),void (*output)(double), double maxDerivative = 10E6, double maxIntegral = 10E6);
+	PID(int (*input)(void),void (*output)(int), double maxDerivative = 10E6, double maxIntegral = 10E6);
 
 	void setKp(int kp);
 
