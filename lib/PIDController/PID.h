@@ -3,24 +3,24 @@
 
 class PID {
 public:
-	PID(int (*input)(void),void (*output)(int), double maxDerivative = 10E6, double maxIntegral = 10E6);
+	PID(double (*input)(void),void (*output)(double), double maxDerivative = 10E6, double maxIntegral = 10E6);
 
-	void setKp(int kp);
+	void setKp(double kp);
 
-	void setKd(int kd);
+	void setKd(double kd);
 
-	void setKi(int ki);
-	int getKp(void);
+	void setKi(double ki);
+	double getKp(void);
 
-	int getKd(void);
+	double getKd(void);
 
-	int getKi(void);
+	double getKi(void);
 
 	void check(void);
 
 private:
-	int (*in)(void);
-	void (*out)(int);
+	double (*in)(void);
+	void (*out)(double);
 
 	double _ki;
 	double _kp;

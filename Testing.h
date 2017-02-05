@@ -17,7 +17,6 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN8_QTR, PIN7_QTR, PIN6_QTR, PIN5_QTR, PI
   8, 2500);
 
 
-
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
     #include "Wire.h"
 #endif
