@@ -7,6 +7,9 @@
 
 #include "Gyroscope.h"
 
+void dmpDataReady() {
+	mpuInterrupt = true;
+}
 
 Gyroscope::Gyroscope(char interrupt_pin) {
 	interrupt_gyro = interrupt_pin;
@@ -111,4 +114,8 @@ void Gyroscope::check() {
 		mpu.dmpGetGravity(&gravity, &q);
 		mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 	}
+}
+
+double Gyroscope::getYaw() {
+	return ypr[0];
 }

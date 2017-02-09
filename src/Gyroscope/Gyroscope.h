@@ -9,13 +9,11 @@
 #define GYROSCOPE_H_
 
 #include "Arduino.h"
+
 #include "../../lib/MPU6050/MPU6050_6Axis_MotionApps20.h"
-#include "Wire.h"
 
 volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has gone high
-void dmpDataReady() {
-	mpuInterrupt = true;
-}
+
 
 class Gyroscope {
 public:
@@ -23,6 +21,8 @@ public:
 
 	void init();
 	void check();
+
+	double getYaw();
 
 private:
 	MPU6050 mpu;

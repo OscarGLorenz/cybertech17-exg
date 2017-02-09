@@ -38,7 +38,7 @@ THE SOFTWARE.
 #define _MPU6050_H_
 
 #include "../I2Cdev/I2Cdev.h"
-#include "helper_3dmath.h"
+#include <stdint.h>
 // supporting link:  http://forum.arduino.cc/index.php?&topic=143444.msg1079517#msg1079517
 // also: http://forum.arduino.cc/index.php?&topic=141571.msg1062899#msg1062899s
 
@@ -51,7 +51,6 @@ THE SOFTWARE.
 //#define pgm_read_float(x) (*(x))
 //#define PSTR(STR) STR
 #endif
-
 
 #define MPU6050_ADDRESS_AD0_LOW     0x68 // address pin low (GND), default for InvenSense evaluation board
 #define MPU6050_ADDRESS_AD0_HIGH    0x69 // address pin high (VCC)
