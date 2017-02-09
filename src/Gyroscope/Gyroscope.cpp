@@ -1,85 +1,18 @@
 /*
- * GyroCTRL.h
+ * Gyroscope.cpp
  *
- *  Created on: 5 feb. 2017
+ *  Created on: 9 feb. 2017
  *      Author: oscar
  */
 
-#ifndef GYROCTRL_H_
-#define GYROCTRL_H_
-
-#include "Arduino.h"
-#include "Pinout.h"
-
-#include "Wire.h"
-
-#include "lib/MPU6050/MPU6050_6Axis_MotionApps20.h"
-#include "lib/PIDController/PID.h"
-
-#include "src/Motors/Motors.h"
+#include "Gyroscope.h"
 
 
-
-//---------MPU6050 CONFIGS---------
-
-MPU6050 mpu;
-
-bool blinkState = false;
-
-bool dmpReady = false;  // set true if DMP init was successful
-uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
-uint8_t devStatus; // return status after each device operation (0 = success, !0 = error)
-uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
-uint16_t fifoCount;     // count of all bytes currently in FIFO
-uint8_t fifoBuffer[64]; // FIFO storage buffer
-
-// orientation/motion vars
-Quaternion q;           // [w, x, y, z]         quaternion container
-VectorInt16 aa;         // [x, y, z]            accel sensor measurements
-VectorInt16 aaReal; // [x, y, z]            gravity-free accel sensor measurements
-VectorInt16 aaWorld; // [x, y, z]            world-frame accel sensor measurements
-VectorFloat gravity;    // [x, y, z]            gravity vector
-float euler[3];         // [psi, theta, phi]    Euler angle container
-float ypr[3]; // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
-
-uint8_t teapotPacket[14] = { '$', 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00,
-		'\r', '\n' };
-
-volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has gone high
-void dmpDataReady() {
-	mpuInterrupt = true;
+Gyroscope::Gyroscope(char interrupt_pin) {
+	interrupt_gyro = interrupt_pin;
 }
 
-//---------MPU6050 CONFIGS---------
-
-//---------Motors CONFIGS---------
-
-#define MAX_V 80
-Motors motors(new DoublePwm(PWM1A, PWM1B), new DoublePwm(PWM2A, PWM2B), MAX_V);
-
-//---------Motors CONFIGS---------
-
-//---------PID CONFIGS---------
-
-double yaw0 = 0;
-bool firstyaw = false;
-
-double inputError(void) {
-	return yaw0 - ypr[0];
-}
-
-void outputError(double error) {
-	motors.fullFwd(error, 1.0);
-}
-
-PID Pid(inputError, outputError);
-
-//---------PID CONFIGS---------
-
-void setup() {
-
-//---------MPU6050 SETUP---------
-
+void Gyroscope::init() {
 	// join I2C bus (I2Cdev library doesn't do this automatically)
 	Wire.begin();
 	Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
@@ -87,7 +20,7 @@ void setup() {
 	// initialize device
 	Serial.println(F("Initializing I2C devices..."));
 	mpu.initialize();
-	pinMode(INTERRUPT_GYRO, INPUT);
+	pinMode(interrupt_gyro, INPUT);
 
 	// verify connection
 	Serial.println(F("Testing device connections..."));
@@ -116,7 +49,7 @@ void setup() {
 		Serial.println(
 				F(
 						"Enabling interrupt detection (Arduino external interrupt 0)..."));
-		attachInterrupt(digitalPinToInterrupt(INTERRUPT_GYRO), dmpDataReady,
+		attachInterrupt(digitalPinToInterrupt(interrupt_gyro), dmpDataReady,
 		RISING);
 		mpuIntStatus = mpu.getIntStatus();
 
@@ -135,31 +68,17 @@ void setup() {
 		Serial.print(devStatus);
 		Serial.println(F(")"));
 	}
-
-//---------MPU6050 SETUP---------
-
-//---------PID SETUP---------
-
-	Pid.setKp(0.01);
-
-//---------PID SETUP---------
-
 }
 
-void loop() {
+void Gyroscope::check() {
 	// if programming failed, don't try to do anything
 	if (!dmpReady)
 		return;
 
 	// wait for MPU interrupt or extra packet(s) available
-	while (!mpuInterrupt && fifoCount < packetSize) {
-		// other program behavior stuff here
-		// if you are really paranoid you can frequently test in between other
-		// stuff to see if mpuInterrupt is true, and if so, "break;" from the
-		// while() loop to immediately process the MPU data
-		Pid.check();
-
-	}
+	if (!mpuInterrupt && fifoCount < packetSize)
+		return;
+	//Salta de la función y permite ejecutar el resto del programa
 
 	// reset interrupt flag and get INT_STATUS byte
 	mpuInterrupt = false;
@@ -175,7 +94,7 @@ void loop() {
 		Serial.println(F("FIFO overflow!"));
 
 		// otherwise, check for DMP data ready interrupt (this should happen frequently)
-// Updates
+		// Updates
 	} else if (mpuIntStatus & 0x02) {
 		// wait for correct available data length, should be a VERY short wait
 		while (fifoCount < packetSize)
@@ -191,17 +110,5 @@ void loop() {
 		mpu.dmpGetQuaternion(&q, fifoBuffer);
 		mpu.dmpGetGravity(&gravity, &q);
 		mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-
-		if (!firstyaw) {
-			firstyaw = ypr[0];
-			firstyaw = true;
-		}
-
-		// blink LED to indicate activity
-		blinkState = !blinkState;
-		pinMode(BLUE_LED, OUTPUT);
-		digitalWrite(BLUE_LED, blinkState);
 	}
 }
-
-#endif /* GYROCTRL_H_ */
