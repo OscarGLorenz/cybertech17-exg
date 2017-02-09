@@ -95,7 +95,7 @@ void setup() {
 
 	for (int i = 0; i < 10; i++) {
 		digitalWrite(BLUE_LED, 1);
-		delay(100);
+		delay(1000);
 		digitalWrite(BLUE_LED, 0);
 	}
 
@@ -114,7 +114,7 @@ void setup() {
 	Serial.println("LEYENDO SHARPS, ABRIR PLOTTER");
 	delay(500);
 
-	for (int i = 0; i<500; i++) {
+	for (int i = 0; i<10000; i++) {
 		Serial.print(analogRead(FRONT_SHARP));
 		Serial.print(" ");
 		Serial.print(analogRead(BACK_SHARP));
