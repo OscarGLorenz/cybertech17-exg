@@ -27,8 +27,8 @@
 
 #define INTERRUPT_GYRO	2
 
-#define PWM1A	6
-#define PWM1B	7
+#define PWM1A	9
+#define PWM1B	6
 #define PWM2A	10
 #define PWM2B	11
 

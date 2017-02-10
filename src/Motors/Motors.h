@@ -7,36 +7,36 @@
 
 #ifndef MOTORS_H_
 #define MOTORS_H_
-
-#include <stdint.h>
-#include "PWMOutput.h"
+#include "Arduino.h"
 
 class Motors {
 public:
 
-	//Motors(uint8_t pinLeft1, uint8_t pinLeft2, uint8_t pinRight1, uint8_t pinRight2, double maxV);
-	Motors(PWMOutput * const outputLeft, PWMOutput * const outputRight, double maxV);
+	//Dos vectores de dos componentes para los pines de cada motor, maxima velocidad en tanto por uno
+	Motors(char * motorsA, char * motorsB, float maxSpeed) {
+		mA[0] = motorsA[0];
+		mA[1] = motorsA[1];
+		mB[0] = motorsB[0];
+		mB[1] = motorsB[1];
+		vMax = constrain(255 * maxSpeed, 0, 255);
+	}
 
-	/* Dir acotado de -1.0 a 1.0, negativo izquierdas, 0.0 recto, 1.0 derecha
-	 * Speed acotado de -1 a 1.0, negativo marcha atrás, positivo macrha adelante
-	 */
-	void fullFwd(double dir, double speed);
-
-	//void fwdBck(double dir,double speed);
-	void fwdBck(bool toLeft);
-
-	void halt(void);
-
-	~Motors();
+	//Mover por diferencia de velocidades, dir de -1 a 1 y speed de 0 a 1
+	void move(double dir, double speed) {
+		dir = constrain(dir, -1.0, 1.0);
+		speed = constrain(speed, 0.0, 1.0);
+		int k1 = vMax * speed * (1.0 + dir) / 2.0;
+		int k2 = vMax * speed * (1.0 - dir) / 2.0;
+		analogWrite(mA[0], 0);
+		analogWrite(mA[1], k1);
+		analogWrite(mB[0], 0);
+		analogWrite(mB[1], k2);
+	}
 
 private:
-//	uint8_t _pinLeft1;
-//	uint8_t _pinLeft2;
-//	uint8_t _pinRight1;
-//	uint8_t _pinRight2;
-	PWMOutput * _outputLeft;
-	PWMOutput * _outputRight;
-	double _maxV;
+	char mA[2];
+	char mB[2];
+	char vMax;
 };
 
 #endif /* MOTORS_H_ */
