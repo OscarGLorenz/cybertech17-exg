@@ -12,7 +12,7 @@
 #include "Pinout.h"
 
 
-#include "../lib/PIDController/PID.h"
+#include "PIDController/PID.h"
 
 #include "Motors/Motors.h"
 #include "Gyroscope/Gyroscope.h"
