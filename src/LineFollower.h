@@ -16,12 +16,10 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR, PIN2_QTR, PIN3_QTR, PIN4_QTR,
 unsigned int sensorValues[8];
 unsigned int position = 3500;
 
-//Calculo del error , referencia 3500?
 double input(void) {
   return 3500 - position;
 }
 
-//Actuador
 void output(double dir) {
   motors.move(dir, 1.0);
 }
@@ -68,8 +66,8 @@ void setup(){
   pid.setKp(KD);
 
   handler.addCommand("P", cfgP);
-  handler.addCommand("I", cfgP);
-  handler.addCommand("D", cfgP);
+  handler.addCommand("I", cfgI);
+  handler.addCommand("D", cfgD);
 }
 
 void loop() {
