@@ -5,8 +5,11 @@
 #include "Motors/Motors.h"
 #include "PIDController/PID.h"
 #include "CommandHandler/CommandHandler.h"
+#include "EEPROMHandler/EEPROMHandler.hpp"
 
 #include "QTRSensors.cpp"
+
+EEPROMHandler eepromHandler;
 
 #define DUTY 0.35
 Motors motors((char []) {PWM1A, PWM1B}, (char []) {PWM2A, PWM2B}, DUTY);
@@ -24,9 +27,6 @@ void output(double dir) {
   motors.move(dir, 1.0);
 }
 
-#define KP 0.01
-#define KI 0
-#define KD 0
 PID pid(input,output);
 
 CommandHandler handler;
@@ -41,33 +41,50 @@ void showPID() {
 
 }
 void cfgP(String cmd) {
-  pid.setKp(cmd.toFloat());
+  float K = cmd.toFloat();
+  pid.setKp(K);
+  eepromHandler.setVariable("P", K);
   showPID();
 }
 void cfgI(String cmd) {
-  pid.setKi(cmd.toFloat());
+  float K = cmd.toFloat();
+  pid.setKi(K);
+  eepromHandler.setVariable("I", K);
   showPID();
 }
 void cfgD(String cmd) {
-  pid.setKd(cmd.toFloat());
+  float K = cmd.toFloat();
+  pid.setKd(K);
+  eepromHandler.setVariable("D", K);
   showPID();
 }
 
+
 void setup(){
   handler.begin();
+
+  eepromHandler.defineVariable("P", sizeof(float));
+  eepromHandler.defineVariable("I", sizeof(float));
+  eepromHandler.defineVariable("D", sizeof(float));
+
+  float K = 0;
+  eepromHandler.getVariable("P", K);
+  pid.setKp(K);
+  eepromHandler.getVariable("I", K);
+  pid.setKi(K);
+  eepromHandler.getVariable("D", K);
+  pid.setKd(K);
 
   delay(500);
   for (int i = 0; i < 400; i++) {
     qtrrc.calibrate();
   }
 
-  pid.setKp(KP);
-  pid.setKp(KI);
-  pid.setKp(KD);
-
   handler.addCommand("P", cfgP);
   handler.addCommand("I", cfgI);
   handler.addCommand("D", cfgD);
+
+
 }
 
 void loop() {
