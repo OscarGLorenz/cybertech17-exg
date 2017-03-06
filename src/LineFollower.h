@@ -11,16 +11,16 @@
 
 EEPROMHandler eepromHandler;
 
-#define DUTY 0.35
-Motors motors((char []) {PWM1A, PWM1B}, (char []) {PWM2A, PWM2B}, DUTY);
+#define DUTY 0.25
+Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
 
 QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR, PIN2_QTR, PIN3_QTR, PIN4_QTR,
    PIN5_QTR, PIN6_QTR, PIN7_QTR, PIN8_QTR}, 8, 2500);
 unsigned int sensorValues[8];
-unsigned int position = 3500;
+int position = 3500;
 
 double input(void) {
-  return 3500 - position;
+  return (position - 3500.0)/3500.0;
 }
 
 void output(double dir) {
@@ -61,28 +61,30 @@ void cfgD(String cmd) {
 
 
 void setup(){
-  handler.begin();
+ handler.begin();
 
-  eepromHandler.defineVariable("P", sizeof(float));
-  eepromHandler.defineVariable("I", sizeof(float));
-  eepromHandler.defineVariable("D", sizeof(float));
+ eepromHandler.defineVariable("P", sizeof(float));
+ eepromHandler.defineVariable("I", sizeof(float));
+ eepromHandler.defineVariable("D", sizeof(float));
 
-  float K = 0;
-  eepromHandler.getVariable("P", K);
-  pid.setKp(K);
-  eepromHandler.getVariable("I", K);
-  pid.setKi(K);
-  eepromHandler.getVariable("D", K);
-  pid.setKd(K);
+ float K = 0;
+ eepromHandler.getVariable("P", K);
+ pid.setKp(K);
+ eepromHandler.getVariable("I", K);
+ pid.setKi(K);
+ eepromHandler.getVariable("D", K);
+ pid.setKd(K);
 
-  delay(500);
-  for (int i = 0; i < 400; i++) {
-    qtrrc.calibrate();
-  }
+ // delay(500);
+ //  for (int i = 0; i < 100; i++) {
+ //    qtrrc.calibrate();
+ //  }
+ 
+ Serial.println("READY");
 
-  handler.addCommand("P", cfgP);
-  handler.addCommand("I", cfgI);
-  handler.addCommand("D", cfgD);
+ handler.addCommand("P", cfgP);
+ handler.addCommand("I", cfgI);
+ handler.addCommand("D", cfgD);
 
 
 }
@@ -91,14 +93,6 @@ void loop() {
   pid.check();
   handler.check();
 
-  position = qtrrc.readLine(sensorValues);
+  position = (int) qtrrc.readLine(sensorValues);
 
-  for (unsigned char i = 0; i < 8; i++) {
-    Serial.print(sensorValues[i]);
-    Serial.print('\t');
-  }
-
-  Serial.println(position);
-
-  delay(250);
 }

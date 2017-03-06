@@ -3,7 +3,7 @@
  *
  *  Created on: 19 sept. 2016
  *      Author: oscar
- *	
+ *
  */
 
 #ifndef SRC_DEBUG_H_
@@ -32,7 +32,10 @@
  */
 #define BRK Serial.print("Reached Line #"); Serial.println(__LINE__);
 
-
-
+/*
+ * Esta macro se usa como println pero escribe una tabulación en vez de salto
+ * de línea
+ */
+#define printtab(x) print(x); Serial.print("\t");
 
 #endif /* SRC_DEBUG_H_ */

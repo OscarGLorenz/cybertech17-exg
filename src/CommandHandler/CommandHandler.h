@@ -5,7 +5,7 @@
 
 #include "Arduino.h"
 
-#include "../DynamicStructures/Vector.h"
+#include "../DynamicStructures/Queue.h"
 #include "../Debug/Debug.h"
 
 typedef void (*fxptr)(String str);
@@ -18,8 +18,8 @@ public:
 
 	void check(void);
 private:
-	dyn::Vector<fxptr> fxs;
-	dyn::Vector<String> strs;
+	dyn::Queue<fxptr> fxs;
+	dyn::Queue<String> strs;
 };
 
 #endif
