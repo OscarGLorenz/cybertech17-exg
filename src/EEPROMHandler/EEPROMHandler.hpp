@@ -1,6 +1,6 @@
 #include "EEPROM.h"
 #include "Arduino.h"
-#include "../DynamicStructures/Vector.h"
+#include "../DynamicStructures/Queue.h"
 
 //Bloque para guardar nombre de la variable y posición
 struct EEPROMBlock {
@@ -43,11 +43,11 @@ public:
 
 //Añade un bloque al vector, aumenta el tamaño
  void defineVariable(String name, int lenght) {
-     blocks.add(EEPROMBlock(name, size));
+     blocks.pushBack(EEPROMBlock(name, size));
      size += lenght;
   }
 
 private:
-  dyn::Vector<EEPROMBlock> blocks;
+  Queue<EEPROMBlock> blocks;
   int size;
 };

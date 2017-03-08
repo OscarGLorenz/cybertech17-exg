@@ -79,7 +79,7 @@ void setup(){
  //  for (int i = 0; i < 100; i++) {
  //    qtrrc.calibrate();
  //  }
- 
+
  Serial.println("READY");
 
  handler.addCommand("P", cfgP);
