@@ -25,7 +25,7 @@ public:
 	void move(double dir, double speed) {
 		dir = constrain(dir, -1.0, 1.0);
 		speed = constrain(speed, 0.0, 1.0);
-		int	k1 = vMax * speed * ( (dir <= 0) ? (1.0 - dir) : 1 );
+		int	k1 = vMax * speed * ( (dir <= 0) ? (1.0 + dir) : 1 );
 		int	k2 = vMax * speed * ( (dir >= 0) ? (1.0 - dir) : 1 );
 		analogWrite(mA[0], 0);
 		analogWrite(mA[1], k1);

@@ -6,12 +6,13 @@
 #include "PIDController/PID.h"
 #include "CommandHandler/CommandHandler.h"
 #include "EEPROMHandler/EEPROMHandler.hpp"
+#include "DynamicStructures/Queue.h"
 
 #include "QTRSensors.cpp"
 
 EEPROMHandler eepromHandler;
 
-#define DUTY 0.25
+#define DUTY 0.10
 Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
 
 QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR, PIN2_QTR, PIN3_QTR, PIN4_QTR,
@@ -59,8 +60,27 @@ void cfgD(String cmd) {
   showPID();
 }
 
-
+bool overSlash = false;
+int count = 0;
+void read() {
+  int sum = 0;
+  for (const int& i : sensorValues)
+    sum += i;
+  if (!overSlash) {
+    if (sum > 2000) {
+      overSlash = true;
+      Serial.println(millis());
+      count++;
+      while(count >= 10) motors.move(0, 0);
+    }
+  } else {
+    if (sum < 1200) {
+      overSlash = false;
+    }
+  }
+}
 void setup(){
+
  handler.begin();
 
  eepromHandler.defineVariable("P", sizeof(float));
@@ -75,24 +95,22 @@ void setup(){
  eepromHandler.getVariable("D", K);
  pid.setKd(K);
 
- // delay(500);
- //  for (int i = 0; i < 100; i++) {
- //    qtrrc.calibrate();
- //  }
-
+ delay(500);
+ for (int i = 0; i < 100; i++) {
+    qtrrc.calibrate();
+}
  Serial.println("READY");
 
  handler.addCommand("P", cfgP);
  handler.addCommand("I", cfgI);
  handler.addCommand("D", cfgD);
 
-
 }
 
 void loop() {
-  pid.check();
   handler.check();
 
   position = (int) qtrrc.readLine(sensorValues);
-
+  pid.check();
+  read();
 }
