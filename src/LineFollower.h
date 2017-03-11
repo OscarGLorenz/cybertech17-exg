@@ -61,7 +61,34 @@ void cfgD(String cmd) {
 
 
 void setup(){
+
+//LECTURA DEL VOTAJE DE LA LIPO
+ int LiPo = analogRead(A1);
+ //Valores medidos 7.5V 900 y 7.8V 940
+ //Valor límite 6.25 750
+ if (LiPo <= 750) {
+   pinMode(BLUE_LED, OUTPUT);
+   for (int i = 0; i < 50; i++) {
+     digitalWrite(BLUE_LED,HIGH);
+     delay(50);
+     digitalWrite(BLUE_LED,LOW);
+     delay(50);
+   }
+ }
+ //LECTURA DEL VOTAJE DE LA LIPO
+
  handler.begin();
+
+ //MENSAJE INICIAL
+ if (LiPo <= 750) {
+   Serial.println("STATUS: LOW VOLTAGE");
+ } else {
+   Serial.println("STATUS: READY");
+ }
+ Serial.print("VOLTAGE: ");
+ Serial.print(LiPo/900.0*7.5);
+ Serial.println("V");
+ //MENSAJE INICIAL
 
  eepromHandler.defineVariable("P", sizeof(float));
  eepromHandler.defineVariable("I", sizeof(float));
@@ -75,17 +102,14 @@ void setup(){
  eepromHandler.getVariable("D", K);
  pid.setKd(K);
 
- // delay(500);
- //  for (int i = 0; i < 100; i++) {
- //    qtrrc.calibrate();
- //  }
- 
- Serial.println("READY");
-
  handler.addCommand("P", cfgP);
  handler.addCommand("I", cfgI);
  handler.addCommand("D", cfgD);
 
+  delay(500);
+   for (int i = 0; i < 100; i++) {
+      qtrrc.calibrate();
+  }
 
 }
 
