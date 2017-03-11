@@ -1,198 +1,177 @@
-/***********************************************************************
- * FILENAME :        Queue.h
- *
- * DESCRIPTION :
- *       A dinamic queue template class for C++11
- * 		Insert at back, delete at front
- * 		No std namespace
- * 		Compatible with Arduino
- *
- * AUTHOR :    Óscar García       START DATE :    31 jul 16
- ***********************************************************************/
+/*
+ * Queue.h
+ * 
+ * Copyright 2017 oscar <oscar@oscar-HP>
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA 02110-1301, USA.
+ * 
+ * 
+ */
 
-#ifndef QUEUE_H_
-#define QUEUE_H_
 
-namespace dyn {
-template<class T> class Node_Queue {
-public:
-	Node_Queue(T param) {
-		object = param;
-		next = nullptr;
-	}
-	T object;
-	Node_Queue<T> * next;
-};
+#ifndef QUEUE_H
+#define QUEUE_H
 
-template<class T> class Queue_Iterator {
-	/** Iterator is recomended using "while (Iterator<T>.hasNext()) {T = Iterator<T>.next();}" */
-public:
-	Queue_Iterator(Node_Queue<T> * first_node) {
-		node = first_node;
-		first = true;
-	}
+#include <stddef.h>
+//Declaraciones para que no haya problemas de orden en el propio archivo,
+//que no se use una cosa antes de que se haya declarado
+template<class T> class Queue;
+template<class T> class NodeQueue;
+template<class T> class QueueIterator;
 
-	bool hasNext() {
-		/** Returns true if there are more elements after this */
-		return (node->next != nullptr);
-	}
-
-	T next() {
-		/** Returns next element, it starts before first element */
-		if (first) {
-			first = false;
-			return node->object;
-		} else {
-			Node_Queue<T> * next = node->next;
-			node = node->next;
-			return next->object;
-		}
-	}
-private:
-	Node_Queue<T> * node;
-	bool first;
-};
-
+//Clase cola dinámica
 template<class T> class Queue {
+	//Clase amiga para que QueueIterator pueda acceder a first, first es privado
+	friend class QueueIterator<T>; 
+
+private:
+	//Primer nodo
+	NodeQueue<T> * first;
+	
+	//Último nodo
+	NodeQueue<T> * last;
+	
+	//Longitud
+	size_t lenght;
 public:
+	//Crear cola
 	Queue() {
-		/** Creates an empty Queue */
 		first = nullptr;
 		last = nullptr;
 		lenght = 0;
 	}
-
-	Queue(T * array, int size) :
-			Queue() {
-		/** Creates a queue with given array */
-		for (int i = 0; i < size; i++) {
-			pushBack(array[i]);
-		}
-	}
-
-	void set(T object, int index) {
-		/** Overwrite the given value in the given index of the Queue */
-		Queue_Iterator<T> itr = getIterator();
-
-		for (int i = 0; itr.hasNext(); i++) {
-			if (index == i) {
-				&itr.next() = new Node_Queue<T>(object);
-			} else {
-				itr.next();
-			}
-		}
-	}
-
-	void pushBack(T object) {
-		/** Appends at back given value */
-		if (first == nullptr) {
-			first = new Node_Queue<T>(object);
-			last = first;
-		} else {
-			last->next = new Node_Queue<T>(object);
-			last = last->next;
-		}
-		lenght++;
-	}
-
-	void pushBack(T * array, int size) {
-		/** Appends the give array to the queue */
-		for (int i = 0; i < size; i++) {
-			pushBack(array[i]);
-		}
-	}
-
-	void popFront() {
-		/** Deletes first object */
-		if (first != nullptr) {
-			if (last != first) {
-				Node_Queue<T> * aux = first->next;
-				delete first;
-				first = aux;
-			} else {
-				delete first;
-				first = nullptr;
-				last = nullptr;
-			}
-			lenght--;
-		}
-	}
-
-	T * toArray(int * size = nullptr) {
-		/** Returns the queue in an array, optional reference parameter returns lenght of
-		 * the array */
-		T * array = new T[lenght];
-
-		if (size != nullptr)
-			*size = lenght;
-
-		Queue_Iterator<T> itr = getIterator();
-
-		for (int i = 0; itr.hasNext(); i++) {
-			array[i] = itr.next();
-		}
-
-		return array;
-	}
-
-	T getInt(int index) {
-		/** Returns the object at the given index */
-		Queue_Iterator<T> itr = getIterator();
-
-		for (int i = 0; itr.hasNext(); i++) {
-			if (index == i) {
-				return itr.next();
-			} else {
-				itr.next();
-			}
-		}
-
-		return T();
-	}
-
-	Queue_Iterator<T> getIterator() {
-		/** Returns an iterator of this object */
-		return Queue_Iterator<T>(first);
-	}
-
-	bool has(T object, int * index = nullptr) {
-		/** Returns true if the array contains the given object, optional parameter returns first occurence */
-		Queue_Iterator<T> itr = getIterator();
-
-		for (int i = 0; itr.hasNext(); i++) {
-			T obj = itr.next();
-			if (obj == object) {
-				if (index != nullptr)
-					*index = i;
-				return true;
-			}
-		}
-		return false;
-	}
-
-	int size() {
-		/** Returns actual size of the Queue */
+	
+	//Devuelve el tamaño
+	size_t size(void) {
 		return lenght;
 	}
-
-	bool isEmpty() {
-		/** Returns true if empty */
-		return lenght == 0;
-	}
-
-	~Queue() {
-		while (lenght != 0) {
-			popFront();
+	
+	//Añade un elemento al final
+	void pushBack(T object) {
+		if (first == nullptr) {
+			//Si es el primero elemento en añadirse, el primer y último
+			//elemento son el mismo
+			last = new NodeQueue<T>(object);
+			first = last;
+		} else {
+			//Si no, se enlaza con el último elemento el nuevo y 
+			//avanzamos a este nuevo
+			last->_next = new NodeQueue<T>(object);
+			last = last->_next;	
 		}
+		//Incrementa longitud
+		lenght++;
 	}
-
-private:
-	Node_Queue<T> * first;
-	Node_Queue<T> * last;
-
-	int lenght;
+		
+	//Devuelve el elemento en la posición dada, DESACONSEJADO PARA ITERAR
+	T get(size_t index) {
+		//Obtiene un iterador
+		QueueIterator<T> itr = getIterator();
+		size_t i = 0;
+		//Usa el iterador hasta que se haya iterado el mismo numero de veces
+		//que el pedido y devuelve este valor
+		while (itr.hasNext()) {
+			if (i == index)
+				return itr.next();
+			else
+				itr.next();
+			i++;
+		}
+		return itr.next();
+	}
+	
+	//Devuelve un iterador
+	QueueIterator<T> getIterator() {
+		return QueueIterator<T>(this);
+	}
 };
 
-}
+//Nodo, no se usa directamente
+template<class T> class NodeQueue {
+public:
+	//Por defecto creas un nodo sin siguiente
+	NodeQueue(T data, NodeQueue<T> * next = nullptr) {
+		_data = data;
+		_next = next;
+	}
+	
+	//Valor
+	T _data;
+	
+	//Siguiente nodo
+	NodeQueue<T> * _next;
+};
+
+//Clase para iterar eficientemente se obtiene con getIterator,
+//se usa con la estructura while(ITR.hasNext()) { A = ITR.next();}
+template<class T> class QueueIterator {
+private:
+	//Nodo actual
+	NodeQueue<T>  * node;
+	
+	//Se ha usado por primera vez o no
+	bool first;
+public:
+	//Crea un iterador
+	QueueIterator(Queue<T> * queue) {
+		node = queue->first;
+		first = true;
+	}
+	
+	//Mira si hay siguiente nodo, si es la primera vez mira el primero
+	bool hasNext() {
+		if (first) {
+			return node != nullptr;
+		} else
+			return node->_next != nullptr;
+	}
+	
+	//Devuelve el valor del siguiente nodo y avanza una posición
+	//En caso de ser la primera vez devuelve el primer nodo
+	T next() {
+		if (first) {
+			first = false;
+		} else {
+			if(node->_next != nullptr);
+			node = node->_next;
+		}
+		return node->_data;
+	}
+};
+
+/* EJEMPLO
+    //Cola de enteros
+	Queue<int> queue;
+	
+	//Añadir números
+	queue.pushBack(4);
+	queue.pushBack(8);
+	queue.pushBack(9);
+	
+	//Método típico para iterar, ineficiente
+	for (size_t i = 0; i < queue.size(); i++) {
+		Serial,println(queue.get(i));
+	}
+
+	//Crear iterador, método eficiente para iterar
+	QueueIterator<int> itr = queue.getIterator();
+
+	while (itr.hasNext()) {
+		Serial,println(itr.next());
+	}
+*/
 
 #endif

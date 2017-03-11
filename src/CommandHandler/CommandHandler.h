@@ -18,8 +18,8 @@ public:
 
 	void check(void);
 private:
-	dyn::Queue<fxptr> fxs;
-	dyn::Queue<String> strs;
+	Queue<fxptr> fxs;
+	Queue<String> strs;
 };
 
 #endif
