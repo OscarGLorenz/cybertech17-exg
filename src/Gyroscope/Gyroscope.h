@@ -12,6 +12,9 @@
 
 #include "../../lib/MPU6050/MPU6050_6Axis_MotionApps20.h"
 
+#define toDeg(x) x*180.0/M_PI
+#define toRad(x) x/180.0*M_PI
+
 volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has gone high
 
 void dmpDataReady() {
@@ -46,10 +49,14 @@ public:
 		devStatus = dmpInitialize();
 
 		// supply your own gyro offsets here, scaled for min sensitivity
-		setXGyroOffset(220);
-		setYGyroOffset(76);
-		setZGyroOffset(-85);
-		setZAccelOffset(1788); // 1688 factory default for my test chip
+
+		setXAccelOffset(-2121);
+		setYAccelOffset(-86);
+		setZAccelOffset(1444);
+
+		setXGyroOffset(-195);
+		setYGyroOffset(8);
+		setZGyroOffset(52);
 
 		// make sure it worked (returns 0 if so)
 		if (devStatus == 0) {
@@ -81,6 +88,8 @@ public:
 			Serial.println(F(")"));
 		}
 	}
+
+
 
 	void check() {
 		// if programming failed, don't try to do anything
@@ -120,14 +129,42 @@ public:
 			fifoCount -= packetSize;
 
 			dmpGetQuaternion(&q, fifoBuffer);
+			dmpGetEuler(euler, &q);
 			dmpGetGravity(&gravity, &q);
 			dmpGetYawPitchRoll(ypr, &q, &gravity);
+			dmpGetAccel(&aa, fifoBuffer);
+			dmpGetLinearAccel(&aaReal, &aa, &gravity);
 		}
 	}
 
 	double getYaw() {
 		return ypr[0];
 	}
+
+	double getPitch() {
+		return ypr[1];
+	}
+
+	double getRoll() {
+		return ypr[0];
+	}
+
+	double getAlpha() {
+		return euler[0];
+	}
+
+	double getBeta() {
+		return euler[1];
+	}
+
+	double getGamma() {
+		return euler[2];
+	}
+
+	VectorInt16 getAcc() {
+	 return	aaReal;
+	}
+
 private:
 	bool dmpReady = false;  // set true if DMP init was successful
 	uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU

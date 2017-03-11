@@ -97,6 +97,7 @@ void setup(){
  //LECTURA DEL VOTAJE DE LA LIPO
 
  handler.begin();
+ delay(50);
 
  //MENSAJE INICIAL
  if (LiPo <= 750) {
@@ -125,7 +126,6 @@ void setup(){
  for (int i = 0; i < 100; i++) {
     qtrrc.calibrate();
 }
- Serial.println("READY");
 
  handler.addCommand("P", cfgP);
  handler.addCommand("I", cfgI);
