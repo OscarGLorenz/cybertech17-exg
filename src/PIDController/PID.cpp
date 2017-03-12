@@ -1,5 +1,5 @@
 #include "PID.h"
-
+#include "Arduino.h"
 PID::PID(double (*input)(void),void (*output)(double), double maxDerivative, double maxIntegral) {
 	in = input;
 	out = output;
@@ -36,6 +36,7 @@ double PID::getKi(void) {
 	return _ki;
 }
 
+
 void PID::check(void) {
 	double error = in();
 
@@ -44,25 +45,18 @@ void PID::check(void) {
 	double proportional = 0;
 	proportional = error*_kp;
 	sumShaft += error;
-	if (constrainedKi > sumShaft*_ki/proportional){
+	if (abs(constrainedKi) > abs(sumShaft*_ki)){
 		integral = sumShaft*_ki;
 	} else {
-		integral = proportional*constrainedKi;
+		sumShaft = 0;
 	}
 
-
-
-	if (constrainedKd > _kd*(error-lastError)/proportional) {
+	if (abs(constrainedKd) > abs(_kd*(error-lastError))) {
 		derivative = _kd*(error-lastError);
-	} else {
-		derivative = proportional*constrainedKd;
 	}
 
 	lastError = error;
 
-
-
 	out(integral+proportional+derivative);
 
 }
-

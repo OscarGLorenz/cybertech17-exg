@@ -27,17 +27,24 @@ public:
 		int	k1 = vMax * speed * ( (dir <= 0) ? (1.0 + dir) : 1 );
 		int	k2 = vMax * speed * ( (dir >= 0) ? (1.0 - dir) : 1 );
 
-		analogWrite(mA[0], 0);
-		analogWrite(mA[1], k1);
-		analogWrite(mB[0], 0);
-		analogWrite(mB[1], k2);
+		if (speed < 0) {
+			analogWrite(mA[0], -k1);
+			analogWrite(mA[1], 0);
+			analogWrite(mB[0], -k2);
+			analogWrite(mB[1], 0);
+		} else {
+			analogWrite(mA[0], 0);
+			analogWrite(mA[1], k1);
+			analogWrite(mB[0], 0);
+			analogWrite(mB[1], k2);
+		}
 	}
 
 	//Mover por diferencia de velocidades, dir de -1 a 1 y speed de 0 a 1
 	//Se permite sentido inverso
 	void rotate(bool dir, double speed) {
 		int	k1 =  speed * ((dir) ? (-1) : 1) * vMax;
-		int	k2 = speed * ((!dir) ? (-1) : 1) * vMax;
+		int	k2 = -k1;
 
 		analogWrite(mA[0], (k1 <= 0) ? 0 : abs(k1));
 		analogWrite(mA[1], (k1 >= 0) ? 0 : abs(k1));

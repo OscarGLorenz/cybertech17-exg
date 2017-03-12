@@ -9,7 +9,7 @@
 #ifndef SRC_DEBUG_H_
 #define SRC_DEBUG_H_
 
-
+#include "Arduino.h"
 
 /* DEBUG es una macro que muestra el valor y nombre de algún valor o variable
  * por Serial
@@ -37,5 +37,12 @@
  * de línea
  */
 #define printtab(x) print(x); Serial.print("\t");
+
+static unsigned long TIMING = millis();
+
+#define limitedSerial(STR, LIMIT) { if (millis()- TIMING > LIMIT) { \
+                                    TIMING = millis(); \
+                                    Serial.println(STR); \
+                                    }}\
 
 #endif /* SRC_DEBUG_H_ */

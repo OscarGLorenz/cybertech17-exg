@@ -21,6 +21,41 @@ void dmpDataReady() {
 	mpuInterrupt = true;
 }
 
+
+#define toDeg(x) x*180.0/M_PI
+#define toRad(x) x/180.0*M_PI
+
+class Angle {
+  double angle;
+public:
+  Angle(double value) {
+    angle = value;
+  }
+  double get() const {
+    return angle;
+  }
+  double operator-(const Angle& other) const {
+    if(abs(angle - other.get()) < M_PI) {
+      return angle - other.get();
+    }
+    return 2*M_PI-(angle - other.get());
+  }
+  double operator+(const Angle& other) const {
+    if(angle + other.get() < M_PI) {
+      return angle + other.get();
+    }
+    return -M_PI+ ((angle + other.get() - M_PI));
+  }
+  Angle& operator=(const Angle& other) {
+    angle = other.get();
+    return *this;
+  }
+  Angle& operator=(const double& other) {
+    angle = other;
+    return *this;
+  }
+};
+
 class Gyroscope : MPU6050{
 public:
 	Gyroscope(char interrupt_pin) {
@@ -149,16 +184,16 @@ public:
 		return ypr[0];
 	}
 
-	double getAlpha() {
-		return euler[0];
+	Angle getAlpha() {
+		return Angle(euler[0]);
 	}
 
-	double getBeta() {
-		return euler[1];
+	Angle getBeta() {
+		return Angle(euler[1]);
 	}
 
-	double getGamma() {
-		return euler[2];
+	Angle getGamma() {
+		return Angle(euler[2]);
 	}
 
 	VectorInt16 getAcc() {
@@ -187,5 +222,4 @@ private:
 			'\r', '\n' };
 
 };
-
 #endif /* GYROSCOPE_H_ */
