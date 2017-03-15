@@ -34,13 +34,13 @@ public:
   double get() const {
     return angle;
   }
-  double operator-(const Angle& other) const {
+  Angle operator-(const Angle& other) const {
     if(abs(angle - other.get()) < M_PI) {
       return angle - other.get();
     }
     return 2*M_PI-(angle - other.get());
   }
-  double operator+(const Angle& other) const {
+  Angle operator+(const Angle& other) const {
     if(angle + other.get() < M_PI) {
       return angle + other.get();
     }

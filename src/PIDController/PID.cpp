@@ -48,11 +48,13 @@ void PID::check(void) {
 	if (abs(constrainedKi) > abs(sumShaft*_ki)){
 		integral = sumShaft*_ki;
 	} else {
-		sumShaft = 0;
+		integral = constrainedKi;
 	}
 
 	if (abs(constrainedKd) > abs(_kd*(error-lastError))) {
 		derivative = _kd*(error-lastError);
+	} else {
+		derivative = constrainedKd;
 	}
 
 	lastError = error;
