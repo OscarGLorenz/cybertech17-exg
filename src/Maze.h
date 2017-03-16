@@ -129,7 +129,8 @@ void setup() {
 void loop() {
 
   //Salida por pantalla de ángulo actual y objetivo
-  limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()) + " " + String((yaw0 - gyro.getAlpha()).get()), 250);
+  //limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()) + " " + String((yaw0 - gyro.getAlpha()).get()), 250);
+  Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
 
   //Leer giroscopio
   gyro.check();
@@ -158,7 +159,8 @@ void loop() {
     int c = 0;
     while(c < CHECKCOUNT) {
       //Salida por pantalla de ángulo actual y objetivo
-      limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 250);
+      //limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 250);
+      Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
 
       //Lectura giroscopio
       gyro.check();

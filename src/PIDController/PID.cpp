@@ -1,6 +1,6 @@
 #include "PID.h"
 #include "Arduino.h"
-PID::PID(double (*input)(void),void (*output)(double), double maxDerivative, double maxIntegral) {
+PID::PID(double (*input)(void),void (*output)(double), double maxDerivative, double maxIntegral, double timing) {
 	in = input;
 	out = output;
 	_ki = 0;
@@ -10,6 +10,7 @@ PID::PID(double (*input)(void),void (*output)(double), double maxDerivative, dou
 	constrainedKd = maxDerivative;
 	constrainedKi = maxIntegral;
 	sumShaft = 0;
+	dt = timing;
 }
 
 void PID::setKp(double kp) {
@@ -44,7 +45,7 @@ void PID::check(void) {
 	double derivative = 0;
 	double proportional = 0;
 	proportional = error*_kp;
-	sumShaft += error;
+	sumShaft += error * dt;
 	if (abs(constrainedKi) > abs(sumShaft*_ki)){
 		integral = sumShaft*_ki;
 	} else {
@@ -52,7 +53,7 @@ void PID::check(void) {
 	}
 
 	if (abs(constrainedKd) > abs(_kd*(error-lastError))) {
-		derivative = _kd*(error-lastError);
+		derivative = _kd*(error-lastError)/dt;
 	} else {
 		derivative = constrainedKd;
 	}
@@ -61,4 +62,5 @@ void PID::check(void) {
 
 	out(integral+proportional+derivative);
 
+	lastTime = millis();
 }
