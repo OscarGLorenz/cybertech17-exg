@@ -41,7 +41,6 @@ void loop() {
 
 	gyro.check();
 
-
 	Serial.println(gyro.getYaw());
 	delay(10);
 }
