@@ -11,6 +11,7 @@
 
 #include "Arduino.h"
 #include "Pinout.h"
+#include "Global.h"
 
 #include "Debug/Debug.h"
 #include "PIDController/PID.h"
@@ -19,7 +20,7 @@
 #include "Gyroscope/Gyroscope.h"
 
 //Motores
-#define DUTY 250
+#define DUTY 255
 Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
 
 //Giroscopio
@@ -29,6 +30,8 @@ Gyroscope gyro(INTERRUPT_GYRO);
 Angle yaw0(0);
 
 
+#define RIGHT true
+#define LEFT false
 
 //PID STRAIGHT
 //Lectura de error de ir recto
@@ -57,53 +60,24 @@ double inputR() {
 void outputR(double dir) {
   motors.rotate(1.0, -constrain(dir,-0.4,0.4));
 }
-#define ROTATION_KP 0.2
-#define ROTATION_KI 0.4
-#define ROTATION_KD 0.01
-PID rotation(inputR,outputR,1,0.4);
+#define ROTATION_KP 0.55
+#define ROTATION_KI 0
+#define ROTATION_KD 0.025
+PID rotation(inputR,outputR,1,1);
 //PID ROTATION
 
 
 
-#define LOW_VOTAGE 750
 #define WAIT_GYROSCOPE 4000
 
 void setup() {
-  //LECTURA DEL VOTAJE DE LA LIPO
-   int LiPo = analogRead(A1);
-   //Valores medidos 7.5V 900 y 7.8V 940
-   //Valor límite 6.25 750
-   if (LiPo <= LOW_VOTAGE) {
-     pinMode(BLUE_LED, OUTPUT);
-     for (int i = 0; i < 50; i++) {
-       digitalWrite(BLUE_LED,HIGH);
-       delay(50);
-       digitalWrite(BLUE_LED,LOW);
-       delay(50);
-     }
-   }
-   //LECTURA DEL VOTAJE DE LA LIPO
-
-   delay(50);
-   Serial.begin(9600);
-
-   //MENSAJE INICIAL
-   if (LiPo <= LOW_VOTAGE) {
-     Serial.println("STATUS: LOW VOLTAGE");
-   } else {
-     Serial.println("STATUS: READY");
-   }
-   Serial.print("VOLTAGE: ");
-   Serial.print(LiPo/900.0*7.5);
-   Serial.println("V");
-   //MENSAJE INICIAL
+  start();
 
   //Configuración PIDs
   straight.setKp(STRAIGHT_KP);
   straight.setKd(STRAIGHT_KD);
 
   rotation.setKp(ROTATION_KP);
-  rotation.setKi(ROTATION_KI);
   rotation.setKd(ROTATION_KD);
 
   //Inicio giroscopio, esperamos para que se estabilice la salida
@@ -112,19 +86,70 @@ void setup() {
     gyro.check();
     delay(2);
   }
-
+  ready();
   //Ángulo inicial
   yaw0 = gyro.getAlpha();
+
+  //flag();
 }
 
 #define THRESHOLD_FRONT 180
+#define THRESHOLD_RIGHT 200
+#define THRESHOLD_LEFT 200
 
-#define CHECKCOUNT 30
+#define CHECKCOUNT 10
 #define RAD_TOLERANCE 0.08
 
 #define TIME_BACK 500
 #define TIME_STOP 500
 #define TIME_FORWARD 500
+
+void turn(bool isRight) {
+
+  //Arrancamos
+  motors.move(0, 0.20);
+  delay(TIME_FORWARD);
+
+  //Paramos
+  motors.rotate(0,0);
+  delay(TIME_STOP);
+
+  //Sumamos 90º
+  if(isRight) {
+    yaw0 = yaw0 + M_PI_2;
+  } else {
+    yaw0 = yaw0 - M_PI_2;
+  }
+
+  //Giro, si conseguimos el ángulo deseado y lo leemos CHECKCOUNT veces salimos del while
+  unsigned long auxtime = millis();
+  unsigned int c = 0;
+  while(c < CHECKCOUNT && millis()-auxtime < 1200) {
+    //Salida por pantalla de ángulo actual y objetivo
+    //limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 250);
+    //Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
+
+    //Lectura giroscopio
+    gyro.check();
+
+    //Ejecutamos PID rotación
+    rotation.check();
+
+    delay(2);
+
+    //Si el error es menor que RAD_TOLERANCE sumamos
+    if(abs((yaw0 - gyro.getAlpha()).get()) < RAD_TOLERANCE) c++;
+  }
+
+  //Paramos
+  motors.rotate(0,0);
+  delay(TIME_STOP);
+
+  //Arrancamos
+  motors.move(0, 0.20);
+  delay(TIME_FORWARD);
+
+}
 
 void loop() {
   //Salida por pantalla de ángulo actual y objetivo
@@ -137,52 +162,19 @@ void loop() {
   //Ejecutar PID Recto
   straight.check();
 
-  delay(2);
-
-
   //Si nos encontramos una pared
-  if(analogRead(FRONT_SHARP) > THRESHOLD_FRONT) {
-
-    //Paramos
-    motors.rotate(0,0);
-    delay(TIME_STOP);
-
-    //Un poco marcha atrás
-    motors.move(0, -0.20);
-    delay(TIME_BACK);
-
-    //Sumamos 90º
-    yaw0 = yaw0 + M_PI_2;
-
-    //Giro, si conseguimos el ángulo deseado y lo leemos CHECKCOUNT veces salimos del while
-    int c = 0;
-    while(c < CHECKCOUNT) {
-      //Salida por pantalla de ángulo actual y objetivo
-      //limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 250);
-      Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
-
-      //Lectura giroscopio
-      gyro.check();
-
-      //Ejecutamos PID rotación
-      rotation.check();
-
-      delay(2);
-
-      //Si el error es menor que RAD_TOLERANCE sumamos
-      if(abs((yaw0 - gyro.getAlpha()).get()) < RAD_TOLERANCE) c++;
+  if(analogRead(RIGHT_SHARP) < THRESHOLD_RIGHT) {
+    turn(RIGHT);
+  } else if (analogRead(FRONT_SHARP) > THRESHOLD_FRONT){
+    if(analogRead(RIGHT_SHARP) < THRESHOLD_LEFT) {
+      turn(LEFT);
+    } else {
+      turn(LEFT);
+      turn(LEFT);
     }
-
-    //Paramos
-    motors.rotate(0,0);
-    delay(TIME_STOP);
-
-    //Arrancamos
-    motors.move(0, 0.20);
-    delay(TIME_FORWARD);
   }
 
-  delay(2);
+  delay(50);
 
 }
 

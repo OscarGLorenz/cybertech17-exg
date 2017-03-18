@@ -53,11 +53,7 @@ void PID::check(void) {
 		sumShaft = 0;
 	}
 
-	if (abs(constrainedKd) > abs(_kd*(error-lastError))) {
-		derivative = _kd*(error-lastError)/dt;
-	} else {
-		derivative = ((_kd*(error-lastError) >= 0) ? 1 : -1 ) * constrainedKd;
-	}
+  derivative = _kd*(error-lastError)/dt;
 
 	lastError = error;
 
