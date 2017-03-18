@@ -34,8 +34,6 @@ private:
 
 	double dt;
 	
-	unsigned long lastTime;
-
 };
 
 #endif

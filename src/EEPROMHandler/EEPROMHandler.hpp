@@ -24,7 +24,7 @@ class EEPROMHandler {
 public:
   //Busca en blocks uno con el mismo nombre, coge la posición y devuelve la var
   template<typename T>  T getVariable(String name, T &var) {
-      for(int i = 0; i < blocks.size(); i++) {
+      for(size_t i = 0; i < blocks.size(); i++) {
         if (blocks.get(i).getString().equalsIgnoreCase(name)) {
           	EEPROM.get(blocks.get(i).getPos(), var);
         }
@@ -34,7 +34,7 @@ public:
 
   //Busca en blocks uno con el mismo nombre, coge la posición y actualiza la var
   template<typename T> void setVariable(String name, const T var) {
-    for(int i = 0; i < blocks.size(); i++) {
+    for(size_t i = 0; i < blocks.size(); i++) {
       if (blocks.get(i).getString().equalsIgnoreCase(name)) {
           EEPROM.put(blocks.get(i).getPos(), var);
       }

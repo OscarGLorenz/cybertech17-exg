@@ -12,7 +12,7 @@
 
 EEPROMHandler eepromHandler;
 
-#define DUTY 0.10
+#define DUTY 40
 Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
 
 QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR, PIN2_QTR, PIN3_QTR, PIN4_QTR,
@@ -25,7 +25,7 @@ double input(void) {
 }
 
 void output(double dir) {
-  motors.move(dir, 1.0);
+  motors.move(constrain(dir, -1.0, 1.0), 1.0);
 }
 
 PID pid(input,output);
@@ -60,25 +60,12 @@ void cfgD(String cmd) {
   showPID();
 }
 
-bool overSlash = false;
-int count = 0;
-void read() {
-  int sum = 0;
-  for (const int& i : sensorValues)
-    sum += i;
-  if (!overSlash) {
-    if (sum > 2000) {
-      overSlash = true;
-      Serial.println(millis());
-      count++;
-      while(count >= 10) motors.move(0, 0);
-    }
-  } else {
-    if (sum < 1200) {
-      overSlash = false;
-    }
-  }
+void setV(String cmd) {
+  float v = cmd.toFloat();
+  motors.setMax(v);
+  Serial.println(String(v) + " VELOCIDAD");
 }
+
 void setup(){
 
 //LECTURA DEL VOTAJE DE LA LIPO
@@ -130,6 +117,7 @@ void setup(){
  handler.addCommand("P", cfgP);
  handler.addCommand("I", cfgI);
  handler.addCommand("D", cfgD);
+ handler.addCommand("V", setV);
 
   delay(500);
    for (int i = 0; i < 100; i++) {
@@ -140,8 +128,7 @@ void setup(){
 
 void loop() {
   handler.check();
-
   position = (int) qtrrc.readLine(sensorValues);
   pid.check();
-  read();
+
 }

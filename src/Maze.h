@@ -19,7 +19,7 @@
 #include "Gyroscope/Gyroscope.h"
 
 //Motores
-#define DUTY 40
+#define DUTY 250
 Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
 
 //Giroscopio
@@ -37,11 +37,11 @@ double input() {
 }
 //Salida de PID de ir recto
 void output(double dir) {
-  motors.move(-constrain(dir,-1.0,1.0), 1.0);
+  motors.move(-constrain(dir,-1.0,1.0), 0.20);
 }
 #define STRAIGHT_KP 1.2
 #define STRAIGHT_KI 0
-#define STRAIGHT_KD 10
+#define STRAIGHT_KD 0.02 //10
 PID straight(input,output,1,1);
 //PID STRAIGHT
 
@@ -55,12 +55,12 @@ double inputR() {
 }
 //Salida de PID de girar
 void outputR(double dir) {
-  motors.rotate(1.0, -constrain(dir,-1.0,1.0));
+  motors.rotate(1.0, -constrain(dir,-0.4,0.4));
 }
-#define ROTATION_KP 1.2
-#define ROTATION_KI 0.01
-#define ROTATION_KD 20
-PID rotation(inputR,outputR,1,1);
+#define ROTATION_KP 0.2
+#define ROTATION_KI 0.4
+#define ROTATION_KD 0.01
+PID rotation(inputR,outputR,1,0.4);
 //PID ROTATION
 
 
@@ -103,7 +103,7 @@ void setup() {
   straight.setKd(STRAIGHT_KD);
 
   rotation.setKp(ROTATION_KP);
-  rotation.setKi(0.01);
+  rotation.setKi(ROTATION_KI);
   rotation.setKd(ROTATION_KD);
 
   //Inicio giroscopio, esperamos para que se estabilice la salida
@@ -120,17 +120,16 @@ void setup() {
 #define THRESHOLD_FRONT 180
 
 #define CHECKCOUNT 30
-#define RAD_TOLERANCE 0.06
+#define RAD_TOLERANCE 0.08
 
 #define TIME_BACK 500
 #define TIME_STOP 500
 #define TIME_FORWARD 500
 
 void loop() {
-
   //Salida por pantalla de ángulo actual y objetivo
   //limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()) + " " + String((yaw0 - gyro.getAlpha()).get()), 250);
-  Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
+  //Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
 
   //Leer giroscopio
   gyro.check();
@@ -149,7 +148,7 @@ void loop() {
     delay(TIME_STOP);
 
     //Un poco marcha atrás
-    motors.move(0, -1.0);
+    motors.move(0, -0.20);
     delay(TIME_BACK);
 
     //Sumamos 90º
@@ -179,7 +178,7 @@ void loop() {
     delay(TIME_STOP);
 
     //Arrancamos
-    motors.move(0, 1.0);
+    motors.move(0, 0.20);
     delay(TIME_FORWARD);
   }
 

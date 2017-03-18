@@ -50,6 +50,7 @@ void PID::check(void) {
 		integral = sumShaft*_ki;
 	} else {
 		integral = ((sumShaft*_ki >= 0) ? 1 : -1 ) * constrainedKi;
+		sumShaft = 0;
 	}
 
 	if (abs(constrainedKd) > abs(_kd*(error-lastError))) {
@@ -62,5 +63,4 @@ void PID::check(void) {
 
 	out(integral+proportional+derivative);
 
-	lastTime = millis();
 }
