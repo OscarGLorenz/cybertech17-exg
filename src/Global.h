@@ -37,7 +37,7 @@ void start(void) {
    //MENSAJE INICIAL
 }
 
-void flag(void) {
+void flag(void) { //Subida de bandera blanca
   unsigned int c = 0;
   while(c < 5) {
     delay(2);
@@ -45,7 +45,7 @@ void flag(void) {
   }
 }
 
-void ready(void) {
+void ready(void) {//Llamar para hacer parpadear LED
   Serial.end();
   digitalWrite(BLUE_LED, 0);
   delay(250);
@@ -53,6 +53,15 @@ void ready(void) {
   delay(250);
   digitalWrite(BLUE_LED, 0);
   Serial.begin(9600);
+}
+
+int filterRead(char pin, unsigned long delays, int times) {//Filtro para leer
+  int read = 0;
+  for(int i = 0; i < times; i++) {
+    read+=analogRead(pin);
+    delay(delays);
+  }
+  return read/times;
 }
 
 #endif

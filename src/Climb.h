@@ -1,14 +1,4 @@
 
-/*
-* GyroCTRL.h
-*
-*  Created on: 5 feb. 2017
-*      Author: oscar
-*/
-
-#ifndef GYROCTRL_H_
-#define GYROCTRL_H_
-
 #include "Arduino.h"
 #include "Pinout.h"
 #include "Global.h"
@@ -40,16 +30,13 @@ double input() {
 }
 //Salida de PID de ir recto
 void output(double dir) {
-  motors.move(-constrain(dir,-1.0,1.0), 0.20);
+  motors.move(-constrain(dir,-1.0,1.0),0.3);
 }
 #define STRAIGHT_KP 1.2
 #define STRAIGHT_KI 0
 #define STRAIGHT_KD 0.02 //10
 PID straight(input,output,1,1);
 //PID STRAIGHT
-
-
-
 
 //PID ROTATION
 //Lectura de error de girar
@@ -65,8 +52,6 @@ void outputR(double dir) {
 #define ROTATION_KD 0.025
 PID rotation(inputR,outputR,1,1);
 //PID ROTATION
-
-
 
 #define WAIT_GYROSCOPE 4000
 
@@ -93,7 +78,7 @@ void setup() {
   //flag();
 }
 
-#define THRESHOLD_FRONT 180
+#define THRESHOLD_FRONT 150
 #define THRESHOLD_RIGHT 200
 #define THRESHOLD_LEFT 200
 
@@ -104,53 +89,7 @@ void setup() {
 #define TIME_STOP 500
 #define TIME_FORWARD 500
 
-void turn(bool isRight) {
-
-  //Arrancamos
-  motors.move(0, 0.20);
-  delay(TIME_FORWARD);
-
-  //Paramos
-  motors.rotate(0,0);
-  delay(TIME_STOP);
-
-  //Sumamos 90º
-  if(isRight) {
-    yaw0 = yaw0 + M_PI_2;
-  } else {
-    yaw0 = yaw0 - M_PI_2;
-  }
-
-  //Giro, si conseguimos el ángulo deseado y lo leemos CHECKCOUNT veces salimos del while
-  unsigned long auxtime = millis();
-  unsigned int c = 0;
-  while(c < CHECKCOUNT && millis()-auxtime < 1200) {
-    //Salida por pantalla de ángulo actual y objetivo
-    //limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 250);
-    //Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
-
-    //Lectura giroscopio
-    gyro.check();
-
-    //Ejecutamos PID rotación
-    rotation.check();
-
-    delay(2);
-
-    //Si el error es menor que RAD_TOLERANCE sumamos
-    if(abs((yaw0 - gyro.getAlpha()).get()) < RAD_TOLERANCE) c++;
-  }
-
-  //Paramos
-  motors.rotate(0,0);
-  delay(TIME_STOP);
-
-  //Arrancamos
-  motors.move(0, 0.20);
-  delay(TIME_FORWARD);
-
-}
-
+bool dir = 0;
 void loop() {
   //Salida por pantalla de ángulo actual y objetivo
   //limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()) + " " + String((yaw0 - gyro.getAlpha()).get()), 250);
@@ -162,20 +101,16 @@ void loop() {
   //Ejecutar PID Recto
   straight.check();
 
-  //Si nos encontramos una pared
-  if(analogRead(RIGHT_SHARP) < THRESHOLD_RIGHT) {
-    turn(RIGHT);
-  } else if (analogRead(FRONT_SHARP) > THRESHOLD_FRONT){
-    if(analogRead(RIGHT_SHARP) < THRESHOLD_LEFT) {
-      turn(LEFT);
-    } else {
-      turn(LEFT);
-      turn(LEFT);
-    }
+  if (filterRead(FRONT_SHARP,10,10) > THRESHOLD_FRONT) {
+    motors.rotate(0,0);
+    delay(500);
+    motors.move(0,-0.3);
+    delay(500);
+    motors.rotate(1, (dir) ? 0.25 : -0.25);
+    dir = !dir;
+    delay(150);
+    motors.move(0,0.3);
+    delay(500);
   }
 
-  delay(2);
-
 }
-
-#endif /* GYROCTRL_H_ */
