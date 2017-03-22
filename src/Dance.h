@@ -49,7 +49,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     motors.move(1, constrain(dir,-0.4,0.4));
   }
   #define ROTATION_KP 0.5
-  #define ROTATION_KI 1.5
+  #define ROTATION_KI 4
   #define ROTATION_KD 0.02
   PID rotation(inputR,outputR,1,1);
   //PID ROTATION
@@ -81,7 +81,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
   }
 
   void output(double dir) {
-    motors.move(constrain(dir,-1.0,1.0), 0.2);
+    motors.move(-constrain(dir,-1.0,1.0), 0.2);
   }
   #define LINE_KP 2
   #define LINE_KI 0
@@ -113,7 +113,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
       delay(2);
 
       //Si el error es menor que RAD_TOLERANCE sumamos
-      if(abs((yaw0 - gyro.getAlpha()).get()) < 0.05) c++;
+      if(abs((yaw0 - gyro.getAlpha()).get()) < 0.02) c++;
     }
 
     motors.move(0,0);
@@ -129,7 +129,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
       straight.check();
 
-      velocity+=gyro.aa.x/350*0.002;
+      velocity+=gyro.aa.x/175.0*0.002;
       distance+=velocity*0.002;
       delay(2);
     }
@@ -266,14 +266,14 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
     ready();
 
-    for(int i=0; i < 4; i++) {
-      turn(M_PI_2);
-      delay(1000);}
-    for(int i=0; i < 4; i++) {
-      turn(-M_PI_2);
-      delay(1000);}
-    ready();
-    exit(0);
+    // for(int i=0; i < 4; i++) {
+    //   turn(M_PI_2);
+    //   delay(1000);}
+    // for(int i=0; i < 4; i++) {
+    //   turn(-M_PI_2);
+    //   delay(1000);}
+    // ready();
+    // exit(0);
   }
 
   void loop() {
