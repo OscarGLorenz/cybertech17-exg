@@ -25,6 +25,7 @@ void dmpDataReady() {
 #define toDeg(x) x*180.0/M_PI
 #define toRad(x) x/180.0*M_PI
 
+
 class Angle {
   double angle;
 public:
@@ -35,16 +36,20 @@ public:
     return angle;
   }
   Angle operator-(const Angle& other) const {
-    if(abs(angle - other.get()) < M_PI) {
-      return angle - other.get();
+	if(angle - other.get() > M_PI) {
+	  return 2*M_PI-(angle - other.get());
+    } else if (angle - other.get() < -M_PI){
+	  return 2*M_PI+(angle - other.get());
     }
-    return 2*M_PI-(angle - other.get());
+    return angle - other.get();
   }
   Angle operator+(const Angle& other) const {
-    if(angle + other.get() < M_PI) {
-      return angle + other.get();
-    }
-    return -M_PI+ ((angle + other.get() - M_PI));
+    if(angle + other.get() > M_PI) {
+	  return -2*M_PI + angle + other.get();
+    } else if (angle + other.get() < -M_PI){
+	  return 2*M_PI + angle + other.get();
+	}
+	return angle + other.get();
   }
   Angle& operator=(const Angle& other) {
     angle = other.get();
@@ -55,6 +60,32 @@ public:
     return *this;
   }
 };
+//CODIGO PARA PROBAR "ANUGLOS"
+// Angle a(0);
+// Angle b(0);
+//
+// int main() {
+//
+// 	double alpha, beta;
+// 	while(1) {
+// 	cin >> alpha;
+// 	cin >> beta;
+// 	a = toRad(alpha);
+// 	b = toRad(beta);
+//
+// 	cout << "A+B" << endl;
+// 	cout << toDeg((a+b).get()) << endl;
+// 	cout << "A-B" << endl;
+// 	cout << toDeg((a-b).get())  << endl;
+// 	cout << "B-A" << endl;
+// 	cout << toDeg((b-a).get())  << endl;
+//
+// 	cout << endl << endl << endl << endl;
+//
+// 	}
+//
+// }
+
 
 class Gyroscope : MPU6050{
 public:
@@ -181,7 +212,7 @@ public:
 	}
 
 	double getRoll() {
-		return ypr[0];
+		return ypr[2];
 	}
 
 	Angle getAlpha() {
@@ -201,6 +232,8 @@ public:
 	VectorInt16 aaReal; // [x, y, z]            gravity-free accel sensor measurements
 	VectorInt16 aaWorld; // [x, y, z]            world-frame accel sensor measurements
 	VectorFloat gravity;    // [x, y, z]            gravity vector
+	float euler[3];         // [psi, theta, phi]    Euler angle container
+	float ypr[3]; // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
 private:
 	bool dmpReady = false;  // set true if DMP init was successful
@@ -211,8 +244,6 @@ private:
 	uint8_t fifoBuffer[64]; // FIFO storage buffer
 
 
-	float euler[3];         // [psi, theta, phi]    Euler angle container
-	float ypr[3]; // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
 	char interrupt_gyro;
 

@@ -35,18 +35,21 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
 
 
+  unsigned long rottime = 0;
+  Angle yawLast(0);
 
   //PID ROTATION
   //Lectura de error de girar
   double inputR() {
     return (yaw0-gyro.getAlpha()).get();
+
   }
   //Salida de PID de girar
   void outputR(double dir) {
-    motors.move(1, -constrain(dir,-0.4,0.4));
+    motors.move(1, constrain(dir,-0.4,0.4));
   }
   #define ROTATION_KP 0.5
-  #define ROTATION_KI 0
+  #define ROTATION_KI 1.5
   #define ROTATION_KD 0.02
   PID rotation(inputR,outputR,1,1);
   //PID ROTATION
@@ -110,7 +113,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
       delay(2);
 
       //Si el error es menor que RAD_TOLERANCE sumamos
-      if(abs((yaw0 - gyro.getAlpha()).get()) < 0.01) c++;
+      if(abs((yaw0 - gyro.getAlpha()).get()) < 0.05) c++;
     }
 
     motors.move(0,0);
@@ -236,12 +239,12 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
 
     //CALIBRACIÓN
-    Serial.println("QTR-8RC Calibration");
-    delay(500);
-    for (int i = 0; i < 100; i++) {
-      qtrrc.calibrate();
-    }
-    Serial.println("Calibration finished");
+    // Serial.println("QTR-8RC Calibration");
+    // delay(500);
+    // for (int i = 0; i < 100; i++) {
+    //   qtrrc.calibrate();
+    // }
+    // Serial.println("Calibration finished");
     //CALIBRACIÓN
 
     ready();
@@ -249,18 +252,28 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     //Inicio giroscopio
     gyro.init();
     //Ángulo inicial
+
     yaw0 = gyro.getAlpha();
 
     while(millis() < 4000) {
       gyro.check();
       delay(2);
+      yaw0 = gyro.getAlpha();
+
+      Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
     }
+    yaw0 = gyro.getAlpha();
 
     ready();
-    
-    // turn(M_PI_2);
-    // ready();
-    // exit(0);
+
+    for(int i=0; i < 4; i++) {
+      turn(M_PI_2);
+      delay(1000);}
+    for(int i=0; i < 4; i++) {
+      turn(-M_PI_2);
+      delay(1000);}
+    ready();
+    exit(0);
   }
 
   void loop() {
