@@ -1,132 +1,80 @@
-
-/*
-* GyroCTRL.h
-*
-*  Created on: 5 feb. 2017
-*      Author: oscar
-*/
-
-#ifndef GYROCTRL_H_
-#define GYROCTRL_H_
-
 #include "Arduino.h"
-#include "Pinout.h"
-#include "Global.h"
 
-#include "Debug/Debug.h"
-#include "PIDController/PID.h"
+#include "Pinout.h"
 
 #include "Motors/Motors.h"
+#include "PIDController/PID.h"
+#include "DynamicStructures/Queue.h"
 #include "Gyroscope/Gyroscope.h"
 
-//Motores
-#define DUTY 255
-Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
+#include "Global.h"
+
+#include "QTRSensors.cpp"
+
+#include "Debug/Debug.h"
+
+Sharps sharps((unsigned char []) {FRONT_SHARP, LEFT_SHARP, BACK_SHARP, RIGHT_SHARP}, 0.2);
 
 //Giroscopio
 Gyroscope gyro(INTERRUPT_GYRO);
+
+
 
 //Variable ángulo, se usa como referncia en varias tareas
 Angle yaw0(0);
 
 
-#define RIGHT true
-#define LEFT false
+
+//Motores
+#define DUTY 200
+Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
+
+
+
+//Sensor de línea
+QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
+  PIN5_QTR, PIN6_QTR, PIN7_QTR,PIN8_QTR}, 8, 2500);
+  unsigned int sensorValues[8];
+  int position = 3500;
+
+  //PID ROTATION
+  //Lectura de error de girar
+  #define ROTATION_KP 0.25
+  #define ROTATION_KI 0
+  #define ROTATION_KD 0
+  #define ROTATION_KF 0.80
+  #define ROTATION_SAT 0.20
+  PID rotation(
+    []()-> double {return (yaw0-gyro.getAlpha()).get();},
+    [](double dir){motors.rotate(-constrain(dir,-ROTATION_SAT,ROTATION_SAT));},
+    1);
+  //PID ROTATION
 
 //PID STRAIGHT
-//Lectura de error de ir recto
-double input() {
-  return (yaw0-gyro.getAlpha()).get();
-}
-//Salida de PID de ir recto
-void output(double dir) {
-  motors.move(-constrain(dir,-1.0,1.0), 0.20);
-}
 #define STRAIGHT_KP 1.2
 #define STRAIGHT_KI 0
-#define STRAIGHT_KD 0.02 //10
-PID straight(input,output,1,1);
+#define STRAIGHT_KD 0.02
+#define STRAIGHT_SAT 0.20
+PID straight(
+  []()-> double {return (yaw0-gyro.getAlpha()).get();},
+  [](double dir){motors.move(constrain(dir,-1.0,1.0), STRAIGHT_SAT);},
+  1);
 //PID STRAIGHT
 
-
-
-
-//PID ROTATION
-//Lectura de error de girar
-double inputR() {
-  return (yaw0-gyro.getAlpha()).get();
-}
-//Salida de PID de girar
-void outputR(double dir) {
-  motors.rotate(1.0, -constrain(dir,-0.4,0.4));
-}
-#define ROTATION_KP 0.55
-#define ROTATION_KI 0
-#define ROTATION_KD 0.025
-PID rotation(inputR,outputR,1,1);
-//PID ROTATION
-
-
-
-#define WAIT_GYROSCOPE 4000
-
-void setup() {
-  start();
-
-  //Configuración PIDs
-  straight.setKp(STRAIGHT_KP);
-  straight.setKd(STRAIGHT_KD);
-
-  rotation.setKp(ROTATION_KP);
-  rotation.setKd(ROTATION_KD);
-
-  //Inicio giroscopio, esperamos para que se estabilice la salida
-  gyro.init();
-  while(millis() < WAIT_GYROSCOPE) {
-    gyro.check();
-    delay(2);
-  }
-  ready();
-  //Ángulo inicial
-  yaw0 = gyro.getAlpha();
-
-  //flag();
-}
 
 #define THRESHOLD_FRONT 180
 #define THRESHOLD_RIGHT 200
 #define THRESHOLD_LEFT 200
 
-#define CHECKCOUNT 10
-#define RAD_TOLERANCE 0.08
-
-#define TIME_BACK 500
-#define TIME_STOP 500
-#define TIME_FORWARD 500
-
-void turn(bool isRight) {
-
-  //Arrancamos
-  motors.move(0, 0.20);
-  delay(TIME_FORWARD);
-
-  //Paramos
-  motors.rotate(0,0);
-  delay(TIME_STOP);
-
-  //Sumamos 90º
-  if(isRight) {
-    yaw0 = yaw0 + M_PI_2;
-  } else {
-    yaw0 = yaw0 - M_PI_2;
-  }
+void turn(double value) {
+  yaw0 = gyro.getAlpha();
+  yaw0 = yaw0 + value;
 
   //Giro, si conseguimos el ángulo deseado y lo leemos CHECKCOUNT veces salimos del while
-  unsigned long auxtime = millis();
-  unsigned int c = 0;
-  while(c < CHECKCOUNT && millis()-auxtime < 1200) {
+  int c = 0;
+  while(c < 40) {
     //Salida por pantalla de ángulo actual y objetivo
-    //limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 250);
+    limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 10);
     //Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
 
     //Lectura giroscopio
@@ -138,44 +86,74 @@ void turn(bool isRight) {
     delay(2);
 
     //Si el error es menor que RAD_TOLERANCE sumamos
-    if(abs((yaw0 - gyro.getAlpha()).get()) < RAD_TOLERANCE) c++;
+    if(abs((yaw0 - gyro.getAlpha()).get()) < 0.04) c++;
   }
 
-  //Paramos
-  motors.rotate(0,0);
-  delay(TIME_STOP);
+  motors.move(0,0);
+}
 
-  //Arrancamos
-  motors.move(0, 0.20);
-  delay(TIME_FORWARD);
 
+
+void setup() {
+  start();
+
+  //Configuración PIDs
+  straight.setKp(STRAIGHT_KP);
+  straight.setKd(STRAIGHT_KD);
+
+  rotation.setKp(ROTATION_KP);
+  rotation.setKi(ROTATION_KI);
+  rotation.setKd(ROTATION_KD);
+  rotation.setKf(ROTATION_KF);
+
+  //Inicio giroscopio, esperamos para que se estabilice la salida
+
+
+  ready();
+
+  gyro.init();
+
+  yaw0 = gyro.getAlpha();
+
+  while(millis() < 4000) {
+    gyro.check();
+    delay(2);
+    yaw0 = gyro.getAlpha();
+
+    Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
+  }
+  yaw0 = gyro.getAlpha();
+
+  for(int i=0; i < 4; i++) {
+    turn(M_PI_2);
+    delay(1000);}
+  for(int i=0; i < 4; i++) {
+    turn(-M_PI_2);
+    delay(1000);}
+  ready();
+  exit(0);
 }
 
 void loop() {
-  //Salida por pantalla de ángulo actual y objetivo
-  //limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()) + " " + String((yaw0 - gyro.getAlpha()).get()), 250);
-  //Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
 
-  //Leer giroscopio
-  gyro.check();
-
-  //Ejecutar PID Recto
-  straight.check();
-
-  //Si nos encontramos una pared
-  if(analogRead(RIGHT_SHARP) < THRESHOLD_RIGHT) {
-    turn(RIGHT);
-  } else if (analogRead(FRONT_SHARP) > THRESHOLD_FRONT){
-    if(analogRead(RIGHT_SHARP) < THRESHOLD_LEFT) {
-      turn(LEFT);
-    } else {
-      turn(LEFT);
-      turn(LEFT);
-    }
-  }
-
-  delay(2);
+  // //Leer giroscopio
+  // gyro.check();
+  //
+  // //Ejecutar PID Recto
+  // straight.check();
+  //
+  // sharps.check();
+  //
+  // if(sharps.get(Dirs::Right) < THRESHOLD_RIGHT) {
+  //   turn(M_PI_2);
+  // } else if (sharps.get(Dirs::Front) > THRESHOLD_FRONT){
+  //   if(sharps.get(Dirs::Left) < THRESHOLD_LEFT) {
+  //     turn(-M_PI_2);
+  //   } else {
+  //     turn(M_PI);
+  //   }
+  // }
+  //
+  // delay(2);
 
 }
-
-#endif /* GYROCTRL_H_ */

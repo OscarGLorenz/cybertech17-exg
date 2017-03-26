@@ -20,10 +20,10 @@
 #define PIN7_QTR	13
 #define PIN8_QTR	A0
 
-#define RIGHT_SHARP	A6
-#define BACK_SHARP	A7
-#define FRONT_SHARP	A2
-#define LEFT_SHARP	A3
+#define RIGHT_SHARP  A6
+#define FRONT_SHARP  A7
+#define LEFT_SHARP A2
+#define BACK_SHARP  A3
 
 #define INTERRUPT_GYRO	2
 

@@ -3,18 +3,23 @@
 
 class PID {
 public:
-	PID(double (*input)(void),void (*output)(double), double maxDerivative = 10E6, double maxIntegral = 10E6, double timing = 0.002);
+	PID(double (*input)(void),void (*output)(double), double maxIntegral = 10E6, double timing = 0.002);
 
 	void setKp(double kp);
 
 	void setKd(double kd);
 
 	void setKi(double ki);
+
+	void setKf(double kf);
+
 	double getKp(void);
 
 	double getKd(void);
 
 	double getKi(void);
+
+	double getKf(void);
 
 	void check(void);
 
@@ -29,11 +34,11 @@ private:
 	double lastError;
 	double sumShaft;
 
-	double constrainedKd;
+	double _kf;
 	double constrainedKi;
 
 	double dt;
-	
+
 };
 
 #endif

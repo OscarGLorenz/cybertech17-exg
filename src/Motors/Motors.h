@@ -42,10 +42,9 @@ public:
 
 	//Mover por diferencia de velocidades, dir de -1 a 1 y speed de 0 a 1
 	//Se permite sentido inverso
-	void rotate(bool dir, double speed) {
-		int	k1 =  speed * ((dir) ? (-1.0) : 1.0) * vMax;
+	void rotate(double speed) {
+		int	k1 =  speed * vMax;
 		int	k2 = -k1;
-		Serial.println(k1);
 
 		analogWrite(mA[0], (k1 <= 0) ? 0 : abs(k1));
 		analogWrite(mA[1], (k1 >= 0) ? 0 : abs(k1));

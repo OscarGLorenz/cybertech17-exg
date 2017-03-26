@@ -34,10 +34,6 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
   int position = 3500;
 
 
-
-  unsigned long rottime = 0;
-  Angle yawLast(0);
-
   //PID ROTATION
   //Lectura de error de girar
   double inputR() {
@@ -51,7 +47,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
   #define ROTATION_KP 0.5
   #define ROTATION_KI 4
   #define ROTATION_KD 0.02
-  PID rotation(inputR,outputR,1,1);
+  PID rotation(inputR,outputR,1);
   //PID ROTATION
 
 
@@ -69,7 +65,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
   #define STRAIGHT_KP 1.2
   #define STRAIGHT_KI 0
   #define STRAIGHT_KD 0.05 //10
-  PID straight(inputS,outputS,1,1);
+  PID straight(inputS,outputS,1);
   //PID STRAIGHT
 
 
@@ -133,7 +129,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
       distance+=velocity*0.002;
       delay(2);
     }
-    motors.rotate(0,0);
+    motors.rotate(0);
 
   }
   //MOVIMIENTOS
@@ -179,7 +175,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     int sum = sensorValues[2] + sensorValues[5]; //Sumar sensores 3 y 6
 
     if(mov.size() >= 6) { //¿Hemos visto 6 grupos ya?
-      motors.rotate(0,0); //Parar
+      motors.rotate(0); //Parar
       execute(); //Ejecutar movimientos
     }
 

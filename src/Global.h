@@ -64,4 +64,28 @@ int filterRead(char pin, unsigned long delays, int times) {//Filtro para leer
   return read/times;
 }
 
+enum class Dirs {Front = 0, Left = 1, Back = 2, Right = 3};
+
+class Sharps {
+public:
+    Sharps(unsigned char * FLBR, float lowpass) {
+      for (int i = 0; i < 4; i++) pins[i] = FLBR[i];
+      Kf = lowpass;
+    }
+
+    void check() {
+      for (int i = 0; i < 4; i++)
+        data[i] = data[i] + Kf * (analogRead(pins[i]) - data[i]);
+    }
+
+    int get(Dirs dir) {
+      return data[(int) dir];
+    }
+
+private:
+  float data[4];
+  float Kf;
+  unsigned char pins[4];
+};
+
 #endif
