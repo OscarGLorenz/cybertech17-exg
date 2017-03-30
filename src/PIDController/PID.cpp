@@ -54,12 +54,14 @@ void PID::check(void) {
 
 	proportional = error*_kp;
 
-	sumShaft += error * dt;
+	if (abs(_ki) > 0) sumShaft += error * dt;
+	else sumShaft = 0;
+	
 	if (abs(constrainedKi) > abs(sumShaft*_ki)){
 		integral = sumShaft*_ki;
 	} else {
 		integral = ((sumShaft*_ki >= 0) ? 1 : -1 ) * constrainedKi;
-		sumShaft = 0;
+		sumShaft -= error * dt;
 	}
 
 	error = lastError + _kf * (error - lastError);

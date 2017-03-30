@@ -13,7 +13,7 @@
 
 #include "Debug/Debug.h"
 
-Sharps sharps((unsigned char []) {FRONT_SHARP, LEFT_SHARP, BACK_SHARP, RIGHT_SHARP}, 0.2);
+Sharps sharps((unsigned char []) {FRONT_SHARP, LEFT_SHARP, BACK_SHARP, RIGHT_SHARP}, 0.8);
 
 //Giroscopio
 Gyroscope gyro(INTERRUPT_GYRO);
@@ -40,8 +40,8 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
   //PID ROTATION
   //Lectura de error de girar
   #define ROTATION_KP 0.25
-  #define ROTATION_KI 0
-  #define ROTATION_KD 0
+  #define ROTATION_KI 5
+  #define ROTATION_KD 0.05
   #define ROTATION_KF 0.80
   #define ROTATION_SAT 0.20
   PID rotation(
@@ -62,17 +62,23 @@ PID straight(
 //PID STRAIGHT
 
 
-#define THRESHOLD_FRONT 180
+#define THRESHOLD_FRONT 200
 #define THRESHOLD_RIGHT 200
 #define THRESHOLD_LEFT 200
 
 void turn(double value) {
+  motors.move(0,0);
+
   yaw0 = gyro.getAlpha();
   yaw0 = yaw0 + value;
 
+  motors.move(0,0.2);
+  delay(500);
+
   //Giro, si conseguimos el ángulo deseado y lo leemos CHECKCOUNT veces salimos del while
   int c = 0;
-  while(c < 40) {
+  long int timer = millis();
+  while(millis() - timer < 1500 && c < 20) {
     //Salida por pantalla de ángulo actual y objetivo
     limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 10);
     //Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
@@ -87,9 +93,16 @@ void turn(double value) {
 
     //Si el error es menor que RAD_TOLERANCE sumamos
     if(abs((yaw0 - gyro.getAlpha()).get()) < 0.04) c++;
+
   }
 
+  rotation.setKi(0);
+  rotation.setKd(ROTATION_KD);
+
   motors.move(0,0);
+
+  motors.move(0,0.2);
+  delay(500);
 }
 
 
@@ -119,11 +132,10 @@ void setup() {
     gyro.check();
     delay(2);
     yaw0 = gyro.getAlpha();
-
-    Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
+  //  Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
   }
   yaw0 = gyro.getAlpha();
-
+Serial.begin(9600);
   for(int i=0; i < 4; i++) {
     turn(M_PI_2);
     delay(1000);}
@@ -136,24 +148,23 @@ void setup() {
 
 void loop() {
 
-  // //Leer giroscopio
-  // gyro.check();
-  //
-  // //Ejecutar PID Recto
-  // straight.check();
-  //
-  // sharps.check();
-  //
-  // if(sharps.get(Dirs::Right) < THRESHOLD_RIGHT) {
-  //   turn(M_PI_2);
-  // } else if (sharps.get(Dirs::Front) > THRESHOLD_FRONT){
-  //   if(sharps.get(Dirs::Left) < THRESHOLD_LEFT) {
-  //     turn(-M_PI_2);
-  //   } else {
-  //     turn(M_PI);
-  //   }
-  // }
-  //
-  // delay(2);
+  //Leer giroscopio
+  gyro.check();
+
+  //Ejecutar PID Recto
+  straight.check();
+
+  sharps.check();
+
+  if(sharps.get(Dirs::Right) < THRESHOLD_RIGHT) {
+    turn(M_PI_2);
+  } else if (sharps.get(Dirs::Front) > THRESHOLD_FRONT){
+    if(sharps.get(Dirs::Left) < THRESHOLD_LEFT) {
+      turn(-M_PI_2);
+    } else {
+      turn(M_PI);
+    }
+  }
+  delay(2);
 
 }
