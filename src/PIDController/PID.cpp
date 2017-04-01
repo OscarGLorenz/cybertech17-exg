@@ -11,6 +11,7 @@ PID::PID(double (*input)(void),void (*output)(double), double maxIntegral, doubl
 	constrainedKi = maxIntegral;
 	sumShaft = 0;
 	dt = timing;
+	deadZone = 0;
 }
 
 void PID::setKp(double kp) {
@@ -27,6 +28,14 @@ void PID::setKi(double ki) {
 
 void PID::setKf(double kf) {
 	_kf = kf;
+}
+
+void PID::setDeadZone(double value) {
+	deadZone = value;
+}
+
+void PID::resetSumShaft() {
+	sumShaft = 0;
 }
 
 double PID::getKp(void) {
@@ -54,14 +63,12 @@ void PID::check(void) {
 
 	proportional = error*_kp;
 
-	if (abs(_ki) > 0) sumShaft += error * dt;
-	else sumShaft = 0;
-	
+	sumShaft += error * dt;
+
 	if (abs(constrainedKi) > abs(sumShaft*_ki)){
-		integral = sumShaft*_ki;
+		integral = ((sumShaft*_ki >= 0) ? 1 : -1 ) * deadZone + sumShaft*_ki;
 	} else {
-		integral = ((sumShaft*_ki >= 0) ? 1 : -1 ) * constrainedKi;
-		sumShaft -= error * dt;
+		sumShaft = -sumShaft;
 	}
 
 	error = lastError + _kf * (error - lastError);

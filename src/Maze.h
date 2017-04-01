@@ -25,6 +25,7 @@ Angle yaw0(0);
 
 
 
+
 //Motores
 #define DUTY 200
 Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
@@ -40,14 +41,14 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
   //PID ROTATION
   //Lectura de error de girar
   #define ROTATION_KP 0.25
-  #define ROTATION_KI 5
+  #define ROTATION_KI 0.1
   #define ROTATION_KD 0.05
   #define ROTATION_KF 0.80
   #define ROTATION_SAT 0.20
   PID rotation(
     []()-> double {return (yaw0-gyro.getAlpha()).get();},
     [](double dir){motors.rotate(-constrain(dir,-ROTATION_SAT,ROTATION_SAT));},
-    1);
+    0.15);
   //PID ROTATION
 
 //PID STRAIGHT
@@ -72,16 +73,14 @@ void turn(double value) {
   yaw0 = gyro.getAlpha();
   yaw0 = yaw0 + value;
 
-  motors.move(0,0.2);
-  delay(500);
+  // motors.move(0,0.2);
+  // delay(500);
 
-  //Giro, si conseguimos el ángulo deseado y lo leemos CHECKCOUNT veces salimos del while
-  int c = 0;
+  int c = 0, d = 0;
   long int timer = millis();
-  while(millis() - timer < 1500 && c < 20) {
+  while(millis() - timer < 250000 && c < 20) {
     //Salida por pantalla de ángulo actual y objetivo
     limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 10);
-    //Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
 
     //Lectura giroscopio
     gyro.check();
@@ -91,18 +90,29 @@ void turn(double value) {
 
     delay(2);
 
-    //Si el error es menor que RAD_TOLERANCE sumamos
-    if(abs((yaw0 - gyro.getAlpha()).get()) < 0.04) c++;
+    if(abs((yaw0 - gyro.getAlpha()).get()) < 0.05) c++;
+    if(abs((yaw0 - gyro.getAlpha()).get()) < 0.4) d++;
+
+    if(d == 2) {
+      motors.move(0,0);
+      delay(500);
+      ready();
+      rotation.setKp(0);
+      rotation.setKi(0.05);
+      rotation.setKd(0);
+    }
 
   }
 
+  rotation.setKp(ROTATION_KP);
   rotation.setKi(0);
   rotation.setKd(ROTATION_KD);
+  rotation.resetSumShaft();
 
   motors.move(0,0);
 
-  motors.move(0,0.2);
-  delay(500);
+  // motors.move(0,0.2);
+   delay(500);
 }
 
 
@@ -118,11 +128,12 @@ void setup() {
   rotation.setKi(ROTATION_KI);
   rotation.setKd(ROTATION_KD);
   rotation.setKf(ROTATION_KF);
-
+  rotation.setDeadZone(0.08);
   //Inicio giroscopio, esperamos para que se estabilice la salida
 
 
   ready();
+  Serial.begin(9600);
 
   gyro.init();
 
@@ -135,14 +146,12 @@ void setup() {
   //  Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
   }
   yaw0 = gyro.getAlpha();
-Serial.begin(9600);
-  for(int i=0; i < 4; i++) {
+
+
+while(1)
     turn(M_PI_2);
-    delay(1000);}
-  for(int i=0; i < 4; i++) {
-    turn(-M_PI_2);
-    delay(1000);}
-  ready();
+
+
   exit(0);
 }
 

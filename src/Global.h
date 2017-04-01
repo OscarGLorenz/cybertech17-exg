@@ -34,6 +34,8 @@ void start(void) {
    Serial.print("VOLTAGE: ");
    Serial.print(LiPo/900.0*7.5);
    Serial.println("V");
+
+    while (analogRead(A1) <= LOW_VOLTAGE);
    //MENSAJE INICIAL
 }
 
@@ -48,9 +50,9 @@ void flag(void) { //Subida de bandera blanca
 void ready(void) {//Llamar para hacer parpadear LED
   Serial.end();
   digitalWrite(BLUE_LED, 0);
-  delay(250);
+  delay(100);
   digitalWrite(BLUE_LED, 1);
-  delay(250);
+  delay(100);
   digitalWrite(BLUE_LED, 0);
   Serial.begin(9600);
 }

@@ -13,6 +13,10 @@ public:
 
 	void setKf(double kf);
 
+	void setDeadZone(double value);
+
+	void resetSumShaft();
+	
 	double getKp(void);
 
 	double getKd(void);
@@ -38,6 +42,7 @@ private:
 	double constrainedKi;
 
 	double dt;
+	double deadZone;
 
 };
 
