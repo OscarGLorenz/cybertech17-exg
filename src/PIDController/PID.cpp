@@ -66,9 +66,13 @@ void PID::check(void) {
 	sumShaft += error * dt;
 
 	if (abs(constrainedKi) > abs(sumShaft*_ki)){
-		integral = ((sumShaft*_ki >= 0) ? 1 : -1 ) * deadZone + sumShaft*_ki;
+		if(sumShaft*_ki >= 0) {
+			integral = 	deadZone  + sumShaft*_ki;
+		} else {
+			integral = -deadZone  + sumShaft*_ki;
+		}
 	} else {
-		sumShaft = -sumShaft;
+		sumShaft = 0;
 	}
 
 	error = lastError + _kf * (error - lastError);

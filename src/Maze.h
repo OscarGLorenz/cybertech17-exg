@@ -13,6 +13,10 @@
 
 #include "Debug/Debug.h"
 
+#include "MazeMapper/MazeObjects.hpp"
+
+//Iterator maze();
+
 Sharps sharps((unsigned char []) {FRONT_SHARP, LEFT_SHARP, BACK_SHARP, RIGHT_SHARP}, 0.8);
 
 //Giroscopio
@@ -41,7 +45,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
   //PID ROTATION
   //Lectura de error de girar
   #define ROTATION_KP 0.25
-  #define ROTATION_KI 0.1
+  #define ROTATION_KI 4
   #define ROTATION_KD 0.05
   #define ROTATION_KF 0.80
   #define ROTATION_SAT 0.20
@@ -68,48 +72,69 @@ PID straight(
 #define THRESHOLD_LEFT 200
 
 void turn(double value) {
+  // motors.move(0,0.15);
+  // delay(500);
+
   motors.move(0,0);
+  delay(500);
 
   yaw0 = gyro.getAlpha();
   yaw0 = yaw0 + value;
 
+  while(abs((yaw0 - gyro.getAlpha()).get()) > 0.08) {
+    gyro.check();
+
+    if ((yaw0 - gyro.getAlpha()).get() >= 0)
+      motors.rotate(-0.12);
+    else
+      motors.rotate(+0.12);
+
+      delay(2);
+  }
+
+  motors.rotate(0);
+  delay(500);
+
+  // motors.move(0,0.15);
+  // delay(500);
+  return;
   // motors.move(0,0.2);
   // delay(500);
 
-  int c = 0, d = 0;
-  long int timer = millis();
-  while(millis() - timer < 250000 && c < 20) {
-    //Salida por pantalla de ángulo actual y objetivo
-    limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 10);
-
-    //Lectura giroscopio
-    gyro.check();
-
-    //Ejecutamos PID rotación
-    rotation.check();
-
-    delay(2);
-
-    if(abs((yaw0 - gyro.getAlpha()).get()) < 0.05) c++;
-    if(abs((yaw0 - gyro.getAlpha()).get()) < 0.4) d++;
-
-    if(d == 2) {
-      motors.move(0,0);
-      delay(500);
-      ready();
-      rotation.setKp(0);
-      rotation.setKi(0.05);
-      rotation.setKd(0);
-    }
-
-  }
-
-  rotation.setKp(ROTATION_KP);
-  rotation.setKi(0);
-  rotation.setKd(ROTATION_KD);
-  rotation.resetSumShaft();
-
-  motors.move(0,0);
+  // int c = 0, d = 0;
+  // long int timer = millis();
+  // while(millis() - timer < 250000 && c < 30) {
+  //   //Salida por pantalla de ángulo actual y objetivo
+  //   limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 10);
+  //
+  //   //Lectura giroscopio
+  //   gyro.check();
+  //
+  //   //Ejecutamos PID rotación
+  //   rotation.check();
+  //
+  //   delay(2);
+  //
+  //   if(abs((yaw0 - gyro.getAlpha()).get()) < 0.05) c++;
+  //   if(abs((yaw0 - gyro.getAlpha()).get()) < 0.4) d++;
+  //
+  //   if(d == 2) {
+  //     motors.move(0,0);
+  //     delay(500);
+  //     ready();
+  //     rotation.setKp(0.010);
+  //     rotation.setKi(0.005);
+  //     rotation.setKd(0.01);
+  //   }
+  //
+  // }
+  //
+  // rotation.setKp(ROTATION_KP);
+  // rotation.setKi(0);
+  // rotation.setKd(ROTATION_KD);
+  // rotation.resetSumShaft();
+  //
+  // motors.move(0,0);
 
   // motors.move(0,0.2);
    delay(500);
@@ -128,7 +153,7 @@ void setup() {
   rotation.setKi(ROTATION_KI);
   rotation.setKd(ROTATION_KD);
   rotation.setKf(ROTATION_KF);
-  rotation.setDeadZone(0.08);
+  rotation.setDeadZone(0.10);
   //Inicio giroscopio, esperamos para que se estabilice la salida
 
 
@@ -148,8 +173,14 @@ void setup() {
   yaw0 = gyro.getAlpha();
 
 
-while(1)
     turn(M_PI_2);
+    turn(M_PI_2);
+    turn(M_PI_2);
+    turn(M_PI_2);
+    turn(-M_PI_2);
+    turn(-M_PI_2);
+    turn(-M_PI_2);
+    turn(-M_PI_2);
 
 
   exit(0);
@@ -167,11 +198,14 @@ void loop() {
 
   if(sharps.get(Dirs::Right) < THRESHOLD_RIGHT) {
     turn(M_PI_2);
+    //maze.move(Dir::RIGHT)
   } else if (sharps.get(Dirs::Front) > THRESHOLD_FRONT){
     if(sharps.get(Dirs::Left) < THRESHOLD_LEFT) {
       turn(-M_PI_2);
+      //maze.move(Dir::LEFT)
     } else {
       turn(M_PI);
+      //maze.move(Dir::BACK)
     }
   }
   delay(2);
