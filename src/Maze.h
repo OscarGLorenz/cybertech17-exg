@@ -2,18 +2,16 @@
 
 #include "Pinout.h"
 
+#include "QTRSensors.cpp"
+
 #include "Motors/Motors.h"
 #include "PIDController/PID.h"
 #include "DynamicStructures/Queue.h"
 #include "Gyroscope/Gyroscope.h"
-
+#include "Mapper/Mapper.h"
 #include "Global.h"
-
-#include "QTRSensors.cpp"
-
 #include "Debug/Debug.h"
 
-#include "MazeMapper/MazeObjects.hpp"
 
 //Iterator maze();
 
@@ -44,15 +42,15 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
   //PID ROTATION
   //Lectura de error de girar
-  #define ROTATION_KP 0.25
-  #define ROTATION_KI 4
-  #define ROTATION_KD 0.05
-  #define ROTATION_KF 0.80
-  #define ROTATION_SAT 0.20
-  PID rotation(
-    []()-> double {return (yaw0-gyro.getAlpha()).get();},
-    [](double dir){motors.rotate(-constrain(dir,-ROTATION_SAT,ROTATION_SAT));},
-    0.15);
+  // #define ROTATION_KP 0.25
+  // #define ROTATION_KI 4
+  // #define ROTATION_KD 0.05
+  // #define ROTATION_KF 0.80
+  // #define ROTATION_SAT 0.20
+  // PID rotation(
+  //   []()-> double {return (yaw0-gyro.getAlpha()).get();},
+  //   [](double dir){motors.rotate(-constrain(dir,-ROTATION_SAT,ROTATION_SAT));},
+  //   0.15);
   //PID ROTATION
 
 //PID STRAIGHT
@@ -67,39 +65,39 @@ PID straight(
 //PID STRAIGHT
 
 
-#define THRESHOLD_FRONT 200
-#define THRESHOLD_RIGHT 200
-#define THRESHOLD_LEFT 200
+#define THRESHOLD_FRONT 350
+#define THRESHOLD_RIGHT 70
+#define THRESHOLD_LEFT 70
 
-void turn(double value) {
-  // motors.move(0,0.15);
-  // delay(500);
+void turn(double value,bool right) {
 
   motors.move(0,0);
   delay(500);
 
   yaw0 = gyro.getAlpha();
   yaw0 = yaw0 + value;
+  delay(2);
 
-  while(abs((yaw0 - gyro.getAlpha()).get()) > 0.08) {
-    gyro.check();
-
-    if ((yaw0 - gyro.getAlpha()).get() >= 0)
+  if(right) {
+    while(abs((yaw0 - gyro.getAlpha()).get()) > 0.11) {
+      gyro.check();
+      sharps.check();
       motors.rotate(-0.12);
-    else
-      motors.rotate(+0.12);
-
       delay(2);
+    }
+  } else {
+    while(abs((yaw0 - gyro.getAlpha()).get()) > 0.08) {
+      gyro.check();
+      sharps.check();
+      motors.rotate(0.14);
+      delay(2);
+    }
   }
 
-  motors.rotate(0);
-  delay(500);
 
   // motors.move(0,0.15);
   // delay(500);
-  return;
-  // motors.move(0,0.2);
-  // delay(500);
+
 
   // int c = 0, d = 0;
   // long int timer = millis();
@@ -137,7 +135,7 @@ void turn(double value) {
   // motors.move(0,0);
 
   // motors.move(0,0.2);
-   delay(500);
+  // delay(500);
 }
 
 
@@ -149,11 +147,11 @@ void setup() {
   straight.setKp(STRAIGHT_KP);
   straight.setKd(STRAIGHT_KD);
 
-  rotation.setKp(ROTATION_KP);
-  rotation.setKi(ROTATION_KI);
-  rotation.setKd(ROTATION_KD);
-  rotation.setKf(ROTATION_KF);
-  rotation.setDeadZone(0.10);
+  // rotation.setKp(ROTATION_KP);
+  // rotation.setKi(ROTATION_KI);
+  // rotation.setKd(ROTATION_KD);
+  // rotation.setKf(ROTATION_KF);
+  // rotation.setDeadZone(0.10);
   //Inicio giroscopio, esperamos para que se estabilice la salida
 
 
@@ -168,22 +166,12 @@ void setup() {
     gyro.check();
     delay(2);
     yaw0 = gyro.getAlpha();
+    sharps.check();
   //  Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
   }
   yaw0 = gyro.getAlpha();
 
 
-    turn(M_PI_2);
-    turn(M_PI_2);
-    turn(M_PI_2);
-    turn(M_PI_2);
-    turn(-M_PI_2);
-    turn(-M_PI_2);
-    turn(-M_PI_2);
-    turn(-M_PI_2);
-
-
-  exit(0);
 }
 
 void loop() {
@@ -196,17 +184,38 @@ void loop() {
 
   sharps.check();
 
+  static long int noRepetir = 0;
+if(millis() - noRepetir > 500) {}
   if(sharps.get(Dirs::Right) < THRESHOLD_RIGHT) {
-    turn(M_PI_2);
-    //maze.move(Dir::RIGHT)
+    if(sharps.get(Dirs::Front) < THRESHOLD_RIGHT && sharps.get(Dirs::Left) < THRESHOLD_LEFT) {
+      motors.move(0,0.15);
+      delay(1000);
+      motors.move(0,0);
+      while(1) {ready();delay(250);}
+    }
+      motors.move(0,0.15);
+      delay(400);
+      turn(M_PI_2,true);
+      noRepetir = millis();
+      //maze.move(Dir::RIGHT)
+
   } else if (sharps.get(Dirs::Front) > THRESHOLD_FRONT){
     if(sharps.get(Dirs::Left) < THRESHOLD_LEFT) {
-      turn(-M_PI_2);
-      //maze.move(Dir::LEFT)
+      yaw0 = gyro.getAlpha();
+      motors.move(0,-0.15);
+      delay(350);
+      turn(-M_PI_2,false);
     } else {
-      turn(M_PI);
-      //maze.move(Dir::BACK)
+      yaw0 = gyro.getAlpha();
+      motors.move(0,-0.15);
+      delay(350);
+      if(sharps.get(Dirs::Left) > sharps.get(Dirs::Right)) {
+        turn(M_PI_2,true);
+      } else {
+        turn(M_PI_2,false);
+      }
     }
+
   }
   delay(2);
 

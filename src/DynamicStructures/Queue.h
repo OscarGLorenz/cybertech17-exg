@@ -1,24 +1,24 @@
 /*
  * Queue.h
- * 
+ *
  * Copyright 2017 oscar <oscar@oscar-HP>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301, USA.
- * 
- * 
+ *
+ *
  */
 
 
@@ -35,15 +35,15 @@ template<class T> class QueueIterator;
 //Clase cola dinámica
 template<class T> class Queue {
 	//Clase amiga para que QueueIterator pueda acceder a first, first es privado
-	friend class QueueIterator<T>; 
+	friend class QueueIterator<T>;
 
 private:
 	//Primer nodo
 	NodeQueue<T> * first;
-	
+
 	//Último nodo
 	NodeQueue<T> * last;
-	
+
 	//Longitud
 	size_t lenght;
 public:
@@ -53,12 +53,12 @@ public:
 		last = nullptr;
 		lenght = 0;
 	}
-	
+
 	//Devuelve el tamaño
 	size_t size(void) {
 		return lenght;
 	}
-	
+
 	//Añade un elemento al final
 	void pushBack(T object) {
 		if (first == nullptr) {
@@ -67,15 +67,15 @@ public:
 			last = new NodeQueue<T>(object);
 			first = last;
 		} else {
-			//Si no, se enlaza con el último elemento el nuevo y 
+			//Si no, se enlaza con el último elemento el nuevo y
 			//avanzamos a este nuevo
 			last->_next = new NodeQueue<T>(object);
-			last = last->_next;	
+			last = last->_next;
 		}
 		//Incrementa longitud
 		lenght++;
 	}
-		
+
 	//Devuelve el elemento en la posición dada, DESACONSEJADO PARA ITERAR
 	T get(size_t index) {
 		//Obtiene un iterador
@@ -92,7 +92,20 @@ public:
 		}
 		return itr.next();
 	}
-	
+
+	bool has(T object) {
+		//Obtiene un iterador
+		QueueIterator<T> itr = getIterator();
+
+		//Usa el iterador hasta que se haya iterado el mismo numero de veces
+		//que el pedido y devuelve este valor
+		while (itr.hasNext()) {
+			if (itr.next() == object)
+				return true;
+		}
+		return false;
+	}
+
 	//Devuelve un iterador
 	QueueIterator<T> getIterator() {
 		return QueueIterator<T>(this);
@@ -107,10 +120,10 @@ public:
 		_data = data;
 		_next = next;
 	}
-	
+
 	//Valor
 	T _data;
-	
+
 	//Siguiente nodo
 	NodeQueue<T> * _next;
 };
@@ -121,7 +134,7 @@ template<class T> class QueueIterator {
 private:
 	//Nodo actual
 	NodeQueue<T>  * node;
-	
+
 	//Se ha usado por primera vez o no
 	bool first;
 public:
@@ -130,7 +143,7 @@ public:
 		node = queue->first;
 		first = true;
 	}
-	
+
 	//Mira si hay siguiente nodo, si es la primera vez mira el primero
 	bool hasNext() {
 		if (first) {
@@ -138,7 +151,7 @@ public:
 		} else
 			return node->_next != nullptr;
 	}
-	
+
 	//Devuelve el valor del siguiente nodo y avanza una posición
 	//En caso de ser la primera vez devuelve el primer nodo
 	T next() {
@@ -155,12 +168,12 @@ public:
 /* EJEMPLO
     //Cola de enteros
 	Queue<int> queue;
-	
+
 	//Añadir números
 	queue.pushBack(4);
 	queue.pushBack(8);
 	queue.pushBack(9);
-	
+
 	//Método típico para iterar, ineficiente
 	for (size_t i = 0; i < queue.size(); i++) {
 		Serial,println(queue.get(i));
