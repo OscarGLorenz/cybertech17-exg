@@ -12,8 +12,8 @@
 #include "Global.h"
 #include "Debug/Debug.h"
 
-
-//Iterator maze();
+//Maze mazeObj();
+//MazeIterator maze(mazeObj.getFirst());
 
 Sharps sharps((unsigned char []) {FRONT_SHARP, LEFT_SHARP, BACK_SHARP, RIGHT_SHARP}, 0.8);
 
@@ -26,7 +26,7 @@ Gyroscope gyro(INTERRUPT_GYRO);
 Angle yaw0(0);
 
 
-
+Queue<char> giros;
 
 //Motores
 #define DUTY 200
@@ -42,16 +42,36 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
   //PID ROTATION
   //Lectura de error de girar
-  // #define ROTATION_KP 0.25
-  // #define ROTATION_KI 4
-  // #define ROTATION_KD 0.05
-  // #define ROTATION_KF 0.80
-  // #define ROTATION_SAT 0.20
-  // PID rotation(
-  //   []()-> double {return (yaw0-gyro.getAlpha()).get();},
-  //   [](double dir){motors.rotate(-constrain(dir,-ROTATION_SAT,ROTATION_SAT));},
-  //   0.15);
+  #define ROTATION_KP 0.25
+  #define ROTATION_KI 0
+  #define ROTATION_KD 0.005
+  #define ROTATION_KF 0.80
+  #define ROTATION_SAT 0.20
+  #define ROTATION_DEAD 0.08
+  #define ROTATION_THRESHOLD 0.03
+  PID rotation(
+    []()-> double {return (yaw0-gyro.getAlpha()).get();},
+    [](double dir){motors.rotate(-constrain(dir,-ROTATION_SAT,ROTATION_SAT));},
+    0.15);
   //PID ROTATION
+
+  //PID ROTATION CURVA
+  //Lectura de error de girar
+  bool rotation2right = false;
+  #define ROTATION2_KP 1.2
+  #define ROTATION2_KI 0
+  #define ROTATION2_KD 0.02
+  #define ROTATION2_KF 0.80
+  #define ROTATION2_SAT 0.20
+  #define ROTATION2_DEAD 0.08
+  #define ROTATION2_THRESHOLD 0.03
+  #define ROTATION2_RADIUS 0.2
+  PID rotation2(
+    []()-> double {return (yaw0-gyro.getAlpha()).get();},
+    [&](double speed){motors.smoothRotate(-constrain(speed,-ROTATION2_SAT,ROTATION2_SAT),
+       rotation2right, ROTATION2_RADIUS);},
+    0.15);
+  //PID ROTATION CURVA
 
 //PID STRAIGHT
 #define STRAIGHT_KP 1.2
@@ -94,66 +114,93 @@ void turn(double value,bool right) {
     }
   }
 
+  motors.move(0,0);
+  delay(500);
 
-  // motors.move(0,0.15);
-  // delay(500);
-
-
-  // int c = 0, d = 0;
-  // long int timer = millis();
-  // while(millis() - timer < 250000 && c < 30) {
-  //   //Salida por pantalla de ángulo actual y objetivo
-  //   limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 10);
-  //
-  //   //Lectura giroscopio
-  //   gyro.check();
-  //
-  //   //Ejecutamos PID rotación
-  //   rotation.check();
-  //
-  //   delay(2);
-  //
-  //   if(abs((yaw0 - gyro.getAlpha()).get()) < 0.05) c++;
-  //   if(abs((yaw0 - gyro.getAlpha()).get()) < 0.4) d++;
-  //
-  //   if(d == 2) {
-  //     motors.move(0,0);
-  //     delay(500);
-  //     ready();
-  //     rotation.setKp(0.010);
-  //     rotation.setKi(0.005);
-  //     rotation.setKd(0.01);
-  //   }
-  //
-  // }
-  //
-  // rotation.setKp(ROTATION_KP);
-  // rotation.setKi(0);
-  // rotation.setKd(ROTATION_KD);
-  // rotation.resetSumShaft();
-  //
-  // motors.move(0,0);
-
-  // motors.move(0,0.2);
-  // delay(500);
 }
 
+void testTurn(double value,bool right) {
 
+  motors.move(0,0);
+  delay(500);
+
+  yaw0 = gyro.getAlpha();
+  yaw0 = yaw0 + value;
+  delay(2);
+
+  int c = 0;
+  while(c < 30) {
+    //Salida por pantalla de ángulo actual y objetivo
+    limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 10);
+
+    //Lectura giroscopio
+    gyro.check();
+
+    //Ejecutamos PID rotación
+    rotation.check();
+
+    if(abs((yaw0 - gyro.getAlpha()).get()) < ROTATION_THRESHOLD) c++;
+
+
+  }
+
+  rotation.resetSumShaft();
+
+  motors.move(0,0);
+  delay(500);
+}
+
+void smoothTurn(bool right, double coef) {
+  motors.move(0,0);
+  delay(500);
+
+  yaw0 = gyro.getAlpha();
+  yaw0 = yaw0 + M_PI_2 * (right ? 1 : -1);
+  delay(2);
+
+  right = rotation2right;
+
+  int c = 0;
+  while(c < 30) {
+    //Salida por pantalla de ángulo actual y objetivo
+    limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 10);
+
+    //Lectura giroscopio
+    gyro.check();
+
+    //Ejecutamos PID rotación
+    rotation2.check();
+
+    if(abs((yaw0 - gyro.getAlpha()).get()) < ROTATION2_THRESHOLD) c++;
+
+  }
+
+  rotation2.resetSumShaft();
+
+  motors.move(0,0);
+  delay(500);
+
+}
 
 void setup() {
+
   start();
 
   //Configuración PIDs
   straight.setKp(STRAIGHT_KP);
   straight.setKd(STRAIGHT_KD);
 
-  // rotation.setKp(ROTATION_KP);
-  // rotation.setKi(ROTATION_KI);
-  // rotation.setKd(ROTATION_KD);
-  // rotation.setKf(ROTATION_KF);
-  // rotation.setDeadZone(0.10);
-  //Inicio giroscopio, esperamos para que se estabilice la salida
+  rotation.setKp(ROTATION_KP);
+  rotation.setKi(ROTATION_KI);
+  rotation.setKd(ROTATION_KD);
+  rotation.setKf(ROTATION_KF);
+  rotation.setDeadZone(ROTATION_DEAD);
 
+  rotation2.setKp(ROTATION2_KP);
+  rotation2.setKi(ROTATION2_KI);
+  rotation2.setKd(ROTATION2_KD);
+  rotation2.setKf(ROTATION2_KF);
+  rotation2.setDeadZone(ROTATION2_DEAD);
 
   ready();
   Serial.begin(9600);
@@ -185,37 +232,50 @@ void loop() {
   sharps.check();
 
   static long int noRepetir = 0;
-if(millis() - noRepetir > 500) {}
+if(millis() - noRepetir > 800) {
   if(sharps.get(Dirs::Right) < THRESHOLD_RIGHT) {
     if(sharps.get(Dirs::Front) < THRESHOLD_RIGHT && sharps.get(Dirs::Left) < THRESHOLD_LEFT) {
-      motors.move(0,0.15);
-      delay(1000);
       motors.move(0,0);
-      while(1) {ready();delay(250);}
+      delay(800);
+      giros.pushBack('E');
+      QueueIterator<char> itr = giros.getIterator();
+      while(itr.hasNext()) {
+        Serial.printtab(itr.next());
+      }
+      while(1) {delay(250);}
     }
       motors.move(0,0.15);
       delay(400);
-      turn(M_PI_2,true);
+      testTurn(M_PI_2,true);
       noRepetir = millis();
-      //maze.move(Dir::RIGHT)
+      giros.pushBack('R');
 
+      //maze.move(Dir::RIGHT)
   } else if (sharps.get(Dirs::Front) > THRESHOLD_FRONT){
     if(sharps.get(Dirs::Left) < THRESHOLD_LEFT) {
       yaw0 = gyro.getAlpha();
       motors.move(0,-0.15);
       delay(350);
-      turn(-M_PI_2,false);
+      testTurn(-M_PI_2,false);
+      giros.pushBack('L');
+
     } else {
       yaw0 = gyro.getAlpha();
       motors.move(0,-0.15);
       delay(350);
+      giros.pushBack('B');
+
       if(sharps.get(Dirs::Left) > sharps.get(Dirs::Right)) {
-        turn(M_PI_2,true);
+        testTurn(M_PI,true);
       } else {
-        turn(M_PI_2,false);
+        testTurn(M_PI,false);
       }
     }
-
+    noRepetir = millis();
+  } else if(sharps.get(Dirs::Left) < THRESHOLD_LEFT && millis() - noRepetir > 800) {
+      giros.pushBack('F');
+      noRepetir = millis();
+    }
   }
   delay(2);
 
