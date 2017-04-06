@@ -12,7 +12,7 @@
 
 EEPROMHandler eepromHandler;
 
-#define DUTY 40
+#define DUTY 250
 Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
 
 QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR, PIN2_QTR, PIN3_QTR, PIN4_QTR,
@@ -25,7 +25,7 @@ double input(void) {
 }
 
 void output(double dir) {
-  motors.move(constrain(dir, -1.0, 1.0), 1.0);
+  motors.move(-constrain(dir, -1.0, 1.0), 1.0);
 }
 
 PID pid(input,output);

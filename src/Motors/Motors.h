@@ -54,7 +54,7 @@ public:
 
 		void smoothRotate(double speed, bool right, double coef) {
 		  int k1 = vMax * speed * (right ? 1+coef : 1);
-		  int k2 = vMax * speed * (!right ? 1+coef : 1);
+		  int k2 = vMax * speed * ((!right) ? 1+coef : 1);
 
 			if (speed < 0) {
 				analogWrite(mA[0], -k1);
