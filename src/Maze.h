@@ -158,6 +158,99 @@ long int tiempos = millis();
   delay(500);
 }
 
+#define THRESHOLD_FRONT 300
+#define THRESHOLD_RIGHT 80
+#define THRESHOLD_LEFT 80
+
+void knownMaze(Queue<Dirs> dirs) {
+  QueueIterator<Dirs> itr = dirs.getIterator();
+  while(itr.hasNext()) {
+    Dirs now = itr.next();
+    sharps.check();
+    long int times;
+
+    switch (now) {
+      case Dirs::Front:
+
+      while (sharps.get(Dirs::Left) > THRESHOLD_LEFT && sharps.get(Dirs::Right) > THRESHOLD_RIGHT ) {
+        gyro.check();
+        straight.check();
+        delay(2);
+        sharps.check();
+      }
+
+      times = millis();
+      while(millis() - times < 1000) {
+        straight.check();
+        delay(2);
+      }
+
+
+      break;
+
+
+      case Dirs::Left:
+
+      while (sharps.get(Dirs::Left) > THRESHOLD_LEFT) {
+        gyro.check();
+        straight.check();
+        delay(2);
+        sharps.check();
+      }
+
+      motors.move(0,0.15);
+      delay(400);
+      testTurn(-M_PI_2, false);
+
+      times = millis();
+      while(millis() - times < 1000) {
+        straight.check();
+        delay(2);
+      }
+
+      break;
+
+
+      case Dirs::Right:
+
+      while (sharps.get(Dirs::Right) > THRESHOLD_RIGHT) {
+        gyro.check();
+        straight.check();
+        delay(2);
+        sharps.check();
+      }
+
+      motors.move(0,0.15);
+      delay(400);
+      testTurn(M_PI_2, true);
+
+      times = millis();
+      while(millis() - times < 1000) {
+        straight.check();
+        delay(2);
+      }
+
+      break;
+
+
+      case Dirs::Back:
+
+      while (sharps.get(Dirs::Right) < THRESHOLD_FRONT) {
+        gyro.check();
+        straight.check();
+        delay(2);
+        sharps.check();
+      }
+
+      testTurn(M_PI, true);
+
+      break;
+    }
+
+    delay(2);
+  }
+}
+
 void setup() {
 
   start();
@@ -193,21 +286,7 @@ void setup() {
   }
   yaw0 = gyro.getAlpha();
 
-  testTurn(M_PI_2, true);
-  testTurn(M_PI_2, true);
-  testTurn(M_PI_2, true);
-  testTurn(M_PI_2, true);
-  testTurn(-M_PI_2, false);
-  testTurn(-M_PI_2, false);
-  testTurn(-M_PI_2, false);
-  testTurn(-M_PI_2, false);
-delay(100);
-exit(0);
-
 }
-#define THRESHOLD_FRONT 300
-#define THRESHOLD_RIGHT 80
-#define THRESHOLD_LEFT 80
 
 void loop() {
   //Ejecutar PID Recto
@@ -230,18 +309,20 @@ if(millis() - noRepetir > 1000) {
 
     Serial.println(String(sharps.get(Dirs::Right)) + " " + String(sharps.get(Dirs::Left)) + " " + String(sharps.get(Dirs::Front)) );
 
-    if(sharps.get(Dirs::Front) < THRESHOLD_RIGHT && sharps.get(Dirs::Left) < THRESHOLD_LEFT) {
-      motors.move(0,0);
-      delay(800);
-      giros.pushBack('E');
-      QueueIterator<char> itr = giros.getIterator();
-      while(itr.hasNext()) {
-        Serial.printtab(itr.next());
-      }
-      while(1) {delay(250);}
-    }
       motors.move(0,0.15);
       delay(400);
+
+      if(sharps.get(Dirs::Front) < 40 && sharps.get(Dirs::Left) < 40 && sharps.get(Dirs::Right) < 40) {
+        motors.move(0,0);
+        delay(800);
+        giros.pushBack('E');
+        QueueIterator<char> itr = giros.getIterator();
+        while(itr.hasNext()) {
+          Serial.printtab(itr.next());
+        }
+        while(1) {delay(250);}
+      }
+
       testTurn(M_PI_2,true);
       noRepetir = millis();
       giros.pushBack('R');

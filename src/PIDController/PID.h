@@ -16,7 +16,7 @@ public:
 	void setDeadZone(double value);
 
 	void resetSumShaft();
-	
+
 	double getKp(void);
 
 	double getKd(void);
@@ -27,9 +27,10 @@ public:
 
 	void check(void);
 
-private:
 	double (*in)(void);
 	void (*out)(double);
+	
+private:
 
 	double _ki;
 	double _kp;

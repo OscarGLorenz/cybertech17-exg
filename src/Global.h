@@ -28,6 +28,11 @@ void start(void) {
    //MENSAJE INICIAL
    if (LiPo <= LOW_VOLTAGE) {
      Serial.println("STATUS: LOW VOLTAGE");
+     Serial.print("VOLTAGE: ");
+     Serial.print(LiPo/900.0*7.5);
+     Serial.println("V");
+     delay(100);
+     exit(0);
    } else {
      Serial.println("STATUS: READY");
    }
