@@ -41,7 +41,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     #define ROTATION_KF 0.80
     #define ROTATION_SAT 0.20
     #define ROTATION_DEAD 0.11
-    #define ROTATION_THRESHOLD 0.05
+    #define ROTATION_THRESHOLD 0.12
     PID rotation(
       []()-> double {return (yaw0-gyro.getAlpha()).get();},
       [](double dir){motors.rotate(-constrain(dir,-ROTATION_SAT,ROTATION_SAT));},
@@ -71,11 +71,12 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     //Angle yawr = yaw0;
     delay(2);
 
+    Serial.println("Al" + String(gyro.getAlpha().get()) + " yaw0" + String(yaw0.get()) + " yaw0-al" + String((gyro.getAlpha() - yaw0).get()));
+
     int c = 0;
-    while(c < 30 ) {
+    while(c < 15 ) {
     //  yawr = gyro.getAlpha();
       //Salida por pantalla de ángulo actual y objetivo
-      limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 10);
 
       //Lectura giroscopio
       gyro.check();
@@ -144,8 +145,9 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     //limitedSerial(sharps.get(Dirs::Right), 500);
 
     if(sharps.get(Dirs::Right) > 120) {
+      yaw0 = gyro.getAlpha();
       long int times = millis();
-      while (millis() - times < 600) {
+      while (millis() - times < 200) {
         gyro.check();
         straight.check();
         sharps.check();
@@ -155,6 +157,8 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
       testTurn(-M_PI_2, false);
 
       straight.out = [](double dir){motors.move(-constrain(dir,-1.0,1.0), -STRAIGHT_SAT);};
+      rotation.setDeadZone(0);
+      rotation.setKp(0.2);
 
       for(int i = 0; i < 10; i++) {
         sharps.check();
@@ -163,7 +167,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
       sharps.check();
 
-      while (sharps.get(Dirs::Back) < 280) {
+      while (sharps.get(Dirs::Back) < 160) {
         gyro.check();
         straight.check();
         sharps.check();

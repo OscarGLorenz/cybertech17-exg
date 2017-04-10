@@ -12,6 +12,7 @@
 //Motores
 #define DUTY 255
 Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
+Sharps sharps((unsigned char []) {FRONT_SHARP, LEFT_SHARP, BACK_SHARP, RIGHT_SHARP}, 0.8);
 
 //Giroscopio
 Gyroscope gyro(INTERRUPT_GYRO);
@@ -19,56 +20,54 @@ Gyroscope gyro(INTERRUPT_GYRO);
 //Variable ángulo, se usa como referncia en varias tareas
 Angle yaw0(0);
 
-
-#define RIGHT true
-#define LEFT false
-
-//PID STRAIGHT
-//Lectura de error de ir recto
-double input() {
-  return (yaw0-gyro.getAlpha()).get();
-}
-//Salida de PID de ir recto
-void output(double dir) {
-  motors.move(-constrain(dir,-1.0,1.0),0.3);
-}
 #define STRAIGHT_KP 1.2
-#define STRAIGHT_KI 0
-#define STRAIGHT_KD 0.02 //10
-PID straight(input,output,1,1);
-//PID STRAIGHT
-
+#define STRAIGHT_KI 0.002
+#define STRAIGHT_KD 0.02
+#define STRAIGHT_SAT 1
+PID straight(
+  []()-> double {return (yaw0-gyro.getAlpha()).get();},
+  [](double dir){motors.move(constrain(dir,-1.0,1.0),0.1);},
+  0.15);//PID STRAIGHT
 //PID ROTATION
 //Lectura de error de girar
-double inputR() {
-  return (yaw0-gyro.getAlpha()).get();
-}
-//Salida de PID de girar
-void outputR(double dir) {
-  motors.rotate(1.0, -constrain(dir,-0.4,0.4));
-}
-#define ROTATION_KP 0.55
+#define ROTATION_KP 0.35
 #define ROTATION_KI 0
-#define ROTATION_KD 0.025
-PID rotation(inputR,outputR,1,1);
-//PID ROTATION
+#define ROTATION_KD 0.01
+#define ROTATION_KF 0.80
+#define ROTATION_SAT 0.20
+#define ROTATION_DEAD 0.11
+#define ROTATION_THRESHOLD 0.05
+PID rotation(
+  []()-> double {return (yaw0-gyro.getAlpha()).get();},
+  [](double dir){motors.rotate(-constrain(dir,-ROTATION_SAT,ROTATION_SAT));},
+  0.15);
+  bool right = true;
 
-#define WAIT_GYROSCOPE 4000
+  void setup() {
 
-void setup() {
-  start();
+    start();
 
-  //Configuración PIDs
-  straight.setKp(STRAIGHT_KP);
-  straight.setKd(STRAIGHT_KD);
+    //Configuración PIDs
+    straight.setKp(STRAIGHT_KP);
+    straight.setKi(STRAIGHT_KI);
+    straight.setKd(STRAIGHT_KD);
 
-  rotation.setKp(ROTATION_KP);
-  rotation.setKd(ROTATION_KD);
+    rotation.setKp(ROTATION_KP);
+    rotation.setKi(ROTATION_KI);
+    rotation.setKd(ROTATION_KD);
+    rotation.setKf(ROTATION_KF);
+    rotation.setDeadZone(ROTATION_DEAD);
+
 
   //Inicio giroscopio, esperamos para que se estabilice la salida
   gyro.init();
-  while(millis() < WAIT_GYROSCOPE) {
+
+
+  right = digitalRead(BUTTON);
+
+  while(millis() < 4000) {
     gyro.check();
+    sharps.check();
     delay(2);
   }
   ready();
@@ -78,39 +77,78 @@ void setup() {
   //flag();
 }
 
-#define THRESHOLD_FRONT 150
-#define THRESHOLD_RIGHT 200
-#define THRESHOLD_LEFT 200
 
-#define CHECKCOUNT 10
-#define RAD_TOLERANCE 0.08
+  void testTurn(double value,bool right) {
+  long int tiempos = millis();
+    motors.move(0,0);
+    delay(500);
 
-#define TIME_BACK 500
-#define TIME_STOP 500
-#define TIME_FORWARD 500
+    yaw0 = yaw0 + value;
+    //Angle yawr = yaw0;
+    delay(2);
 
-bool dir = 0;
+    int c = 0;
+    while(c < 30 ) {
+    //  yawr = gyro.getAlpha();
+      //Salida por pantalla de ángulo actual y objetivo
+      limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 10);
+
+      //Lectura giroscopio
+      gyro.check();
+
+      //Ejecutamos PID rotación
+      rotation.check();
+
+      if(abs((yaw0 - gyro.getAlpha()).get()) < ROTATION_THRESHOLD) c++;
+      if(millis() - tiempos > 4000) break;
+      delay(2);
+
+    }
+
+    rotation.resetSumShaft();
+
+    motors.move(0,0);
+    delay(500);
+  }
+
 void loop() {
-  //Salida por pantalla de ángulo actual y objetivo
-  //limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()) + " " + String((yaw0 - gyro.getAlpha()).get()), 250);
-  //Serial.println(String(gyro.getAlpha().get()) + " " + String(yaw0.get()));
 
+  sharps.check();
   //Leer giroscopio
   gyro.check();
 
   //Ejecutar PID Recto
   straight.check();
 
-  if (filterRead(FRONT_SHARP,10,10) > THRESHOLD_FRONT) {
-    motors.rotate(0,0);
-    delay(500);
-    motors.move(0,-0.3);
-    delay(500);
-    motors.rotate(1, (dir) ? 0.25 : -0.25);
-    dir = !dir;
-    delay(150);
-    motors.move(0,0.3);
-    delay(500);
+  if (sharps.get(Dirs::Front) > 160) {
+    motors.move(0, -0.2);
+    delay(400);
+
+    if (right) {
+      testTurn(M_PI_4, true);
+    } else {
+      testTurn(-M_PI_4, false);
+    }
+
+   long int times = millis();
+    while(millis()-times < 600) {
+      sharps.check();
+      //Leer giroscopio
+      gyro.check();
+
+      //Ejecutar PID Recto
+      straight.check();
+      delay(2);
+    }
+
+    if (!right) {
+      testTurn(M_PI_4, true);
+    } else {
+      testTurn(-M_PI_4, false);
+    }
+    right = !right;
   }
+
+  delay(2);
 
 }
