@@ -407,7 +407,7 @@ private:
     while (itr.connections() == 2) {
       itr.movePriority(true);
     }
-    while (itr.connections() < 3) {
+    while (itr.connections() < 3 && itr.type() == Type::NORMAL) {
       itr.deleteAndMove(true);
     }
   }

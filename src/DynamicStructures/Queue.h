@@ -110,6 +110,12 @@ public:
 	QueueIterator<T> getIterator() {
 		return QueueIterator<T>(this);
 	}
+
+	void add(T * array, size_t dim) {
+		for (size_t i = 0; i < dim; i++) {
+			pushBack(array[i]);
+		}
+	}
 };
 
 //Nodo, no se usa directamente

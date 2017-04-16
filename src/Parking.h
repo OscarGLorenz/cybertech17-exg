@@ -10,7 +10,7 @@
 #include "Gyroscope/Gyroscope.h"
 #include "Global.h"
 #include "Debug/Debug.h"
-
+//8-00V
 Sharps sharps((unsigned char []) {FRONT_SHARP, LEFT_SHARP, BACK_SHARP, RIGHT_SHARP}, 0.8);
 
 //Giroscopio
@@ -41,7 +41,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     #define ROTATION_KF 0.80
     #define ROTATION_SAT 0.20
     #define ROTATION_DEAD 0.11
-    #define ROTATION_THRESHOLD 0.12
+    #define ROTATION_THRESHOLD 0.10
     PID rotation(
       []()-> double {return (yaw0-gyro.getAlpha()).get();},
       [](double dir){motors.rotate(-constrain(dir,-ROTATION_SAT,ROTATION_SAT));},
@@ -75,19 +75,12 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
     int c = 0;
     while(c < 15 ) {
-    //  yawr = gyro.getAlpha();
-      //Salida por pantalla de ángulo actual y objetivo
-
-      //Lectura giroscopio
       gyro.check();
-
-      //Ejecutamos PID rotación
       rotation.check();
 
       if(abs((yaw0 - gyro.getAlpha()).get()) < ROTATION_THRESHOLD) c++;
       if(millis() - tiempos > 4000) break;
       delay(2);
-
     }
 
     rotation.resetSumShaft();
@@ -113,9 +106,6 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     rotation.setKf(ROTATION_KF);
     rotation.setDeadZone(ROTATION_DEAD);
 
-
-
-
     ready();
     Serial.begin(9600);
 
@@ -134,6 +124,9 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
   }
 
+#define THRESHOLD_RIGHT 120
+#define THRESHOLD_BACK 180
+#define FRONT_DELAY 200
   void loop() {
     //Ejecutar PID Recto
     gyro.check();
@@ -144,10 +137,10 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
     //limitedSerial(sharps.get(Dirs::Right), 500);
 
-    if(sharps.get(Dirs::Right) > 120) {
+    if(sharps.get(Dirs::Right) > THRESHOLD_RIGHT) {
       yaw0 = gyro.getAlpha();
       long int times = millis();
-      while (millis() - times < 200) {
+      while (millis() - times < FRONT_DELAY) {
         gyro.check();
         straight.check();
         sharps.check();
@@ -167,7 +160,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
       sharps.check();
 
-      while (sharps.get(Dirs::Back) < 160) {
+      while (sharps.get(Dirs::Back) < THRESHOLD_BACK) {
         gyro.check();
         straight.check();
         sharps.check();
