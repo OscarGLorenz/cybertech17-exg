@@ -52,7 +52,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
   //PID STRAIGHT
   #define STRAIGHT_KP 1.2
-  #define STRAIGHT_KI 0.002
+  #define STRAIGHT_KI 0.005
   #define STRAIGHT_KD 0.02
   #define STRAIGHT_SAT 0.20
   PID straight(
@@ -122,6 +122,12 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     }
     yaw0 = gyro.getAlpha();
 
+while(1) {
+  gyro.check();
+  straight.check();
+  sharps.check();
+  delay(2);
+}
   }
 
 #define THRESHOLD_RIGHT 120

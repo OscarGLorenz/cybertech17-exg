@@ -38,8 +38,12 @@
  */
 #define printtab(x) print(x); Serial.print("\t");
 
+//Variable global para contar tiempo
 static unsigned long TIMING = millis();
 
+/*
+ * Con esta macro podemos limitar la salida por pantalla a un tiempo LIMIT
+ */
 #define limitedSerial(STR, LIMIT) { if (millis()- TIMING > LIMIT) { \
                                     TIMING = millis(); \
                                     Serial.println(STR); \

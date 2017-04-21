@@ -49,7 +49,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
   //PID STRAIGHT
   #define STRAIGHT_KP 1.2
-  #define STRAIGHT_KI 0.002
+  #define STRAIGHT_KI 0.005
   #define STRAIGHT_KD 0.02
   #define STRAIGHT_SAT 0.20
   PID straight([]()-> double {return (yaw0-gyro.getAlpha()).get();}, [](double dir){motors.move(constrain(dir,-1.0,1.0), STRAIGHT_SAT);}, 1);
@@ -96,17 +96,19 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     long int tiempos = millis();
     motors.move(0,0);
     delay(500);
-
-    yaw0 = gyro.getAlpha();
+    Serial.println(value);
+    //yaw0 = gyro.getAlpha();
     yaw0 = yaw0 + value;
     //Angle yawr = yaw0;
+
+    Serial.println(String(yaw0.get()) + " " + String(gyro.getAlpha().get()) + " " + String((yaw0-gyro.getAlpha()).get()));
     delay(2);
 
     int c = 0;
     while(c < 30 ) {
       //  yawr = gyro.getAlpha();
       //Salida por pantalla de ángulo actual y objetivo
-      limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 10);
+      //limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 10);
 
       //Lectura giroscopio
       gyro.check();
@@ -115,7 +117,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
       rotation.check();
 
       if(abs((yaw0 - gyro.getAlpha()).get()) < ROTATION_THRESHOLD) c++;
-      if(millis() - tiempos > 4000) break;
+      if(millis() - tiempos > 4000 && abs((yaw0 - gyro.getAlpha()).get()) < 0.1) break;
       delay(2);
 
     }
@@ -149,8 +151,10 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
         times = millis();
         while(millis() - times < 1000) {
+          gyro.check();
           straight.check();
           delay(2);
+          sharps.check();
         }
 
 
@@ -171,9 +175,11 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
         testTurn(-M_PI_2, false);
 
         times = millis();
-        while(millis() - times < 1000) {
+        while(millis() - times < 800) {
+          gyro.check();
           straight.check();
           delay(2);
+          sharps.check();
         }
 
         break;
@@ -193,9 +199,11 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
         testTurn(M_PI_2, true);
 
         times = millis();
-        while(millis() - times < 1000) {
+        while(millis() - times < 500) {
+          gyro.check();
           straight.check();
           delay(2);
+          sharps.check();
         }
 
         break;
@@ -222,7 +230,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
   void store(Queue<Dirs> dirs) {
     EEPROM.put(0x40,dirs.size());
     for (size_t i = 0; i < dirs.size(); i++) {
-      EEPROM.put(0x40+i*2,dirs.get(i));
+      EEPROM.put(0x40+i*sizeof(Dirs),dirs.get(i));
     }
   }
 
@@ -231,8 +239,27 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     Dirs aux;
     size_t size = EEPROM.get(0x40,size);
     for (size_t i = 0; i < size; i++) {
-      dirs.pushBack(EEPROM.get(0x40+i*2,aux));
+      dirs.pushBack(EEPROM.get(0x40+i*sizeof(Dirs),aux));
     }
+
+    QueueIterator<Dirs> itr = dirs.getIterator();
+    while(itr.hasNext()) {
+      switch (itr.next()) {
+        case Dirs::Front:
+          Serial.printtab('F');
+        break;
+        case Dirs::Left:
+          Serial.printtab('L');
+        break;
+        case Dirs::Right:
+          Serial.printtab('R');
+        break;
+        case Dirs::Back:
+          Serial.printtab('B');
+        break;
+      }
+    }
+
     return dirs;
   }
 
@@ -268,9 +295,19 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     }
     yaw0 = gyro.getAlpha();
 
-    if(!analogRead(BUTTON)) {
-      knownMaze(restore());
-    }
+    //Queue<Dirs> queue;
+    //Dirs dirs[] = {Dirs::Right,Dirs::Right,Dirs::Left,Dirs::Right,Dirs::Left,Dirs::Left,Dirs::Right};
+    //queue.add(dirs, 7);
+
+  //  store(queue);
+  //  restore();
+//if(!digitalRead(BUTTON)) knownMaze(restore());
+//return;
+
+  //    knownMaze(queue);
+      //knownMaze(restore());
+  //    motors.rotate(0);
+    //exit(0);
   }
 
   void loop() {
@@ -279,17 +316,21 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     straight.check();
     sharps.check();
     delay(2);
+    limitedSerial(String(sharps.get(Dirs::Right)) + " " + String(sharps.get(Dirs::Left)) + " " + String(sharps.get(Dirs::Front)) ,150);
 
     static long int noRepetir = 0;
     bool isExit = true;
-    if(millis() - noRepetir > 1000) {
+    if(millis() - noRepetir > 800) {
       if(sharps.get(Dirs::Right) < THRESHOLD_RIGHT) {
         sharps.check();
 
-        Serial.println(String(sharps.get(Dirs::Right)) + " " + String(sharps.get(Dirs::Left)) + " " + String(sharps.get(Dirs::Front)) );
 
         motors.move(0,0.15);
-        delay(400);
+        unsigned long timer = millis();
+        while(millis() - timer < 300) {
+          sharps.check();
+          delay(2);
+        }
 
         if(sharps.get(Dirs::Front) < 40 && sharps.get(Dirs::Left) < 40 && sharps.get(Dirs::Right) < 40) {
           motors.move(0,0);
@@ -334,6 +375,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
           mazeItr.move(Dirs::Right, Type::NORMAL);
         }
       } else if (sharps.get(Dirs::Front) > THRESHOLD_FRONT){
+        sharps.check();
         if(sharps.get(Dirs::Left) < THRESHOLD_LEFT) {
           yaw0 = gyro.getAlpha();
           motors.move(0,-0.15);

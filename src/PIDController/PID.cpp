@@ -1,5 +1,6 @@
 #include "PID.h"
 #include "Arduino.h"
+#include "../Debug/Debug.h"
 PID::PID(double (*input)(void),void (*output)(double), double maxIntegral, double timing) {
 	in = input;
 	out = output;
@@ -87,4 +88,6 @@ void PID::check(void) {
 	} else {
 		out(output+deadZone);
 	}
+
+	limitedSerial(String(proportional) + " " + String(derivative), 150);
 }
