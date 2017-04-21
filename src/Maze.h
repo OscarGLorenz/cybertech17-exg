@@ -49,7 +49,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
   //PID STRAIGHT
   #define STRAIGHT_KP 1.2
-  #define STRAIGHT_KI 0.005
+  #define STRAIGHT_KI 0.02
   #define STRAIGHT_KD 0.02
   #define STRAIGHT_SAT 0.20
   PID straight([]()-> double {return (yaw0-gyro.getAlpha()).get();}, [](double dir){motors.move(constrain(dir,-1.0,1.0), STRAIGHT_SAT);}, 1);
@@ -101,7 +101,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     yaw0 = yaw0 + value;
     //Angle yawr = yaw0;
 
-    Serial.println(String(yaw0.get()) + " " + String(gyro.getAlpha().get()) + " " + String((yaw0-gyro.getAlpha()).get()));
+    Serial.println("Ang " + String(yaw0.get()) + " " + String(gyro.getAlpha().get()) + " " + String((yaw0-gyro.getAlpha()).get()));
     delay(2);
 
     int c = 0;
@@ -228,37 +228,75 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
   }
 
   void store(Queue<Dirs> dirs) {
-    EEPROM.put(0x40,dirs.size());
-    for (size_t i = 0; i < dirs.size(); i++) {
-      EEPROM.put(0x40+i*sizeof(Dirs),dirs.get(i));
+    EEPROM.put(0x40,(uint8_t) dirs.size());
+
+    QueueIterator<Dirs> itrDirs = dirs.getIterator();
+    int i = 1;
+    while(itrDirs.hasNext()) {
+      char c = 'A';
+      switch(itrDirs.next()) {
+        case Dirs::Front:
+        c = 'F';
+        break;
+        case Dirs::Left:
+        c = 'L';
+        break;
+        case Dirs::Right:
+        c = 'R';
+        break;
+        case Dirs::Back:
+        c = 'B';
+        break;
+      }
+      EEPROM.put(0x40+i*sizeof(char),c);
+      i++;
     }
   }
 
   Queue<Dirs> restore() {
     Queue<Dirs> dirs;
-    Dirs aux;
-    size_t size = EEPROM.get(0x40,size);
-    for (size_t i = 0; i < size; i++) {
-      dirs.pushBack(EEPROM.get(0x40+i*sizeof(Dirs),aux));
-    }
+    uint8_t size = EEPROM.get(0x40,size);
+    char c;
 
-    QueueIterator<Dirs> itr = dirs.getIterator();
-    while(itr.hasNext()) {
-      switch (itr.next()) {
-        case Dirs::Front:
-          Serial.printtab('F');
+    for (uint8_t i = 0; i < size; i++) {
+      Dirs aux;
+      switch(EEPROM.get(0x40+(i+1)*sizeof(char),c)) {
+        case 'F':
+          aux = Dirs::Front;
         break;
-        case Dirs::Left:
-          Serial.printtab('L');
+        case 'L':
+          aux = Dirs::Left;
         break;
-        case Dirs::Right:
-          Serial.printtab('R');
+        case 'R':
+          aux = Dirs::Right;
         break;
-        case Dirs::Back:
-          Serial.printtab('B');
+        case 'B':
+          aux = Dirs::Back;
         break;
       }
+      dirs.pushBack(aux);
     }
+
+    QueueIterator<Dirs> itrDirs = dirs.getIterator();
+    while(itrDirs.hasNext()) {
+      char c = '\0';
+      switch(itrDirs.next()) {
+        case Dirs::Front:
+        c = 'F';
+        break;
+        case Dirs::Left:
+        c = 'L';
+        break;
+        case Dirs::Right:
+        c = 'R';
+        break;
+        case Dirs::Back:
+        c = 'B';
+        break;
+      }
+      Serial.printtab(c);
+    }
+    Serial.println();
 
     return dirs;
   }
@@ -308,6 +346,7 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
       //knownMaze(restore());
   //    motors.rotate(0);
     //exit(0);
+
   }
 
   void loop() {
@@ -315,86 +354,143 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     gyro.check();
     straight.check();
     sharps.check();
-    delay(2);
-    limitedSerial(String(sharps.get(Dirs::Right)) + " " + String(sharps.get(Dirs::Left)) + " " + String(sharps.get(Dirs::Front)) ,150);
 
     static long int noRepetir = 0;
     bool isExit = true;
     if(millis() - noRepetir > 800) {
+      limitedSerial("Sha " + String(sharps.get(Dirs::Right)) + " " + String(sharps.get(Dirs::Left)) + " " + String(sharps.get(Dirs::Front)) ,150);
       if(sharps.get(Dirs::Right) < THRESHOLD_RIGHT) {
-        sharps.check();
-
-
         motors.move(0,0.15);
         unsigned long timer = millis();
         while(millis() - timer < 300) {
-          sharps.check();
-          delay(2);
+           sharps.check();
+           delay(2);
         }
 
-        if(sharps.get(Dirs::Front) < 40 && sharps.get(Dirs::Left) < 40 && sharps.get(Dirs::Right) < 40) {
-          motors.move(0,0);
-          delay(800);
-          if (isExit) {
-            giros.pushBack('X');
-            mazeItr.move(Dirs::Front, Type::EXIT);
-
-            giros.pushBack('B');
-            mazeItr.move(Dirs::Back, Type::NORMAL);
-
-            if(sharps.get(Dirs::Left) > sharps.get(Dirs::Right)) {
-              testTurn(M_PI,true);
-            } else {
-              testTurn(M_PI,false);
-            }
-
-            noRepetir = millis();
-
-            isExit = !isExit;
-          } else {
-            giros.pushBack('E');
-            mazeItr.move(Dirs::Front, Type::ENTRY);
-
-            QueueIterator<char> itr = giros.getIterator();
-            while(itr.hasNext()) {
-              Serial.printtab(itr.next());
-            }
-            Queue<Dirs> dirs = mazeObj.solve();
-            store(dirs);
-            motors.rotate(0);
-            while(1) {delay(250);}
-          }
-
-
-
-        } else {
-
-          testTurn(M_PI_2,true);
-          noRepetir = millis();
-          giros.pushBack('R');
-          mazeItr.move(Dirs::Right, Type::NORMAL);
+        if(sharps.get(Dirs::Front) < 40 && sharps.get(Dirs::Right) < 40) {
+          for(int i = 0; i < 10; i++) {sharps.check(); delayMicroseconds(500);}
         }
+
+
+         if(sharps.get(Dirs::Front) < 40 && sharps.get(Dirs::Left) < 40 && sharps.get(Dirs::Right) < 40) {
+           motors.move(0,0);
+           delay(800);
+           if (isExit) {
+               giros.pushBack('X');
+               mazeItr.move(Dirs::Front, Type::EXIT);
+
+               giros.pushBack('B');
+               mazeItr.move(Dirs::Back, Type::NORMAL);
+
+              testTurn(M_PI_2,true);
+              testTurn(M_PI_2,true);
+
+              noRepetir = millis();
+
+              isExit = false;
+              Serial.println("HE ZALIDO");
+
+           } else {
+               giros.pushBack('E');
+               mazeItr.move(Dirs::Front, Type::ENTRY);
+
+               motors.rotate(0);
+               delay(50);
+               Serial.println("RESULTS.....");
+
+               QueueIterator<char> itr = giros.getIterator();
+               while(itr.hasNext()) {
+                Serial.printtab(itr.next());
+              }
+
+              Serial.println("SOLVING MAZE.....");
+
+              Queue<Dirs> dirs = mazeObj.solve();
+              QueueIterator<Dirs> itrDirs = dirs.getIterator();
+              while(itrDirs.hasNext()) {
+                char c = '\0';
+                switch(itrDirs.next()) {
+                  case Dirs::Front:
+                  c = 'F';
+                  break;
+                  case Dirs::Left:
+                  c = 'L';
+                  break;
+                  case Dirs::Right:
+                  c = 'R';
+                  break;
+                  case Dirs::Back:
+                  c = 'B';
+                  break;
+                }
+                Serial.printtab(c);
+              }
+              Serial.println();
+
+              store(dirs);
+
+              Serial.println("RESTORING DATA.....");
+              Queue<Dirs> checkDirs = restore();
+              itrDirs = checkDirs.getIterator();
+              while(itrDirs.hasNext()) {
+                char c = '\0';
+                switch(itrDirs.next()) {
+                  case Dirs::Front:
+                  c = 'F';
+                  break;
+                  case Dirs::Left:
+                  c = 'L';
+                  break;
+                  case Dirs::Right:
+                  c = 'R';
+                  break;
+                  case Dirs::Back:
+                  c = 'B';
+                  break;
+                }
+                Serial.printtab(c);
+              }
+              Serial.println();
+
+
+
+               while(1) {delay(250);}
+           }
+
+
+
+         } else {
+           if (sharps.get(Dirs::Front) > THRESHOLD_FRONT){
+             yaw0 = gyro.getAlpha();
+             motors.move(0,-0.15);
+             delay(350);
+           }
+
+             testTurn(M_PI_2,true);
+             noRepetir = millis();
+            giros.pushBack('R');
+            mazeItr.move(Dirs::Right, Type::NORMAL);
+         }
       } else if (sharps.get(Dirs::Front) > THRESHOLD_FRONT){
-        sharps.check();
+        yaw0 = gyro.getAlpha();
+        motors.move(0,-0.15);
+        delay(350);
+
         if(sharps.get(Dirs::Left) < THRESHOLD_LEFT) {
-          yaw0 = gyro.getAlpha();
-          motors.move(0,-0.15);
-          delay(350);
           testTurn(-M_PI_2,false);
           giros.pushBack('L');
           mazeItr.move(Dirs::Left, Type::NORMAL);
 
         } else {
-          yaw0 = gyro.getAlpha();
-          motors.move(0,-0.15);
-          delay(350);
           giros.pushBack('B');
           mazeItr.move(Dirs::Back, Type::NORMAL);
 
           if(sharps.get(Dirs::Left) > sharps.get(Dirs::Right)) {
-            testTurn(M_PI,true);
+            testTurn(M_PI_2,true);
+            testTurn(M_PI_2,true);
           } else {
-            testTurn(M_PI,false);
+            testTurn(-M_PI_2,false);
+            testTurn(-M_PI_2,false);
           }
         }
         noRepetir = millis();

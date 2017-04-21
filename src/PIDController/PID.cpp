@@ -89,5 +89,5 @@ void PID::check(void) {
 		out(output+deadZone);
 	}
 
-	limitedSerial(String(proportional) + " " + String(derivative), 150);
+	//limitedSerial(String(proportional) + " " + String(derivative), 150);
 }

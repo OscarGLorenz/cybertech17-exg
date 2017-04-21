@@ -26,7 +26,7 @@ Angle yaw0(0);
 #define STRAIGHT_SAT 1
 PID straight(
   []()-> double {return (yaw0-gyro.getAlpha()).get();},
-  [](double dir){motors.move(constrain(dir,-1.0,1.0),0.1);},
+  [](double dir){motors.move(constrain(dir,-1.0,1.0),-STRAIGHT_SAT);},
   0.15);//PID STRAIGHT
 //PID ROTATION
 //Lectura de error de girar
@@ -120,6 +120,7 @@ void loop() {
   //Ejecutar PID Recto
   straight.check();
 
+delay(2); return;
   if (sharps.get(Dirs::Front) > 160) {
     motors.move(0, -0.2);
     delay(400);
