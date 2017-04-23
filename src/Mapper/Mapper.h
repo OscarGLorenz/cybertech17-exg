@@ -6,6 +6,15 @@ enum class Type {
 	NORMAL, EXIT, ENTRY, CHECK1, CHECK2, CHECK3, CHECK4
 };
 
+class Movement {
+public:
+	Movement(Type t, Dirs d) {
+		type = t;
+		dir = d;
+	}
+	Type type;
+	Dirs dir;
+};
 
 Dirs ckWise(Dirs dir) {
 	switch (dir) {
@@ -348,8 +357,12 @@ public:
     first  = new Cell(Dirs::Back, 0, Type::ENTRY);
   }
 
-	//Devuelve un arraylist con las direcciones para salir
-	//lo más directo posible del laberinto
+	Queue<Movement> solver() {
+		Queue<Movement> moves;
+
+		return moves;
+	}
+
 	Queue<Dirs> solve() {
     Queue<Dirs> dirs;
     Queue<int> ids;
@@ -360,10 +373,8 @@ public:
       itr.movePriority(true);
       ids.pushBack(itr.id());
       if (itr.connections() > 2 && ids.has(itr.id())) {
-        Serial.println("DELETING");
         itr.reverse();
         autoFree(itr);
-        Serial.println("END DELETE");
       }
     }
 
@@ -375,10 +386,8 @@ public:
       itr.movePriority(true);
       ids2.pushBack(itr.id());
       if (itr.connections() > 2 && ids.has(itr.id())) {
-        Serial.println("DELETING");
         itr.reverse();
         autoFree(itr);
-        Serial.println("END DELETE");
       }
     }
 

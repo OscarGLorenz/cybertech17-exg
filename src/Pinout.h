@@ -34,8 +34,8 @@
 
 #define BAT_VOLTAGE A1
 
-#define MIN_LINE (unsigned char []) {96,48,88,88,88,48,8,48};
-#define MAX_LINE (unsigned char []) {2500,1488,1800,1940,960,840,8,1812};
+extern const unsigned int minLine[] = {96,48,88,88,88,48,8,48};
+extern const unsigned int maxLine[] = {2500,1488,1800,1940,960,840,8,1812};
 
 
 #endif /* PINOUT_H_ */

@@ -3,6 +3,8 @@
 
 #include "Pinout.h"
 #include "Arduino.h"
+#include "DynamicStructures/Queue.h"
+#include "Debug/Debug.h"
 
 #define LOW_VOLTAGE 750
 
@@ -72,6 +74,30 @@ int filterRead(char pin, unsigned long delays, int times) {//Filtro para leer
 }
 
 enum class Dirs {Front = 0, Left = 1, Back = 2, Right = 3};
+
+void showDirs(Queue<Dirs> dirs) {
+  QueueIterator<Dirs> itrDirs = dirs.getIterator();
+  while(itrDirs.hasNext()) {
+    char c = '\0';
+    switch(itrDirs.next()) {
+      case Dirs::Front:
+      c = 'F';
+      break;
+      case Dirs::Left:
+      c = 'L';
+      break;
+      case Dirs::Right:
+      c = 'R';
+      break;
+      case Dirs::Back:
+      c = 'B';
+      break;
+    }
+    Serial.printtab(c);
+  }
+  Serial.println();
+}
+
 
 class Sharps {
 public:
