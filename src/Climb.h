@@ -10,7 +10,7 @@
 #include "Gyroscope/Gyroscope.h"
 
 //Motores
-#define DUTY 255
+#define DUTY 140
 Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
 Sharps sharps((unsigned char []) {FRONT_SHARP, LEFT_SHARP, BACK_SHARP, RIGHT_SHARP}, 0.8);
 
@@ -21,22 +21,22 @@ Gyroscope gyro(INTERRUPT_GYRO);
 Angle yaw0(0);
 
 #define STRAIGHT_KP 1.2
-#define STRAIGHT_KI 0.002
+#define STRAIGHT_KI 0.04
 #define STRAIGHT_KD 0.02
 #define STRAIGHT_SAT 1
 PID straight(
   []()-> double {return (yaw0-gyro.getAlpha()).get();},
-  [](double dir){motors.move(constrain(dir,-1.0,1.0),-STRAIGHT_SAT);},
+  [](double dir){motors.move(constrain(dir,-1.0,1.0),STRAIGHT_SAT);},
   0.15);//PID STRAIGHT
 //PID ROTATION
 //Lectura de error de girar
 #define ROTATION_KP 0.35
-#define ROTATION_KI 0
+#define ROTATION_KI 0.01
 #define ROTATION_KD 0.01
 #define ROTATION_KF 0.80
-#define ROTATION_SAT 0.20
+#define ROTATION_SAT 1
 #define ROTATION_DEAD 0.11
-#define ROTATION_THRESHOLD 0.05
+#define ROTATION_THRESHOLD 0.15
 PID rotation(
   []()-> double {return (yaw0-gyro.getAlpha()).get();},
   [](double dir){motors.rotate(-constrain(dir,-ROTATION_SAT,ROTATION_SAT));},
@@ -80,8 +80,6 @@ PID rotation(
 
   void testTurn(double value,bool right) {
   long int tiempos = millis();
-    motors.move(0,0);
-    delay(500);
 
     yaw0 = yaw0 + value;
     //Angle yawr = yaw0;
@@ -100,15 +98,13 @@ PID rotation(
       rotation.check();
 
       if(abs((yaw0 - gyro.getAlpha()).get()) < ROTATION_THRESHOLD) c++;
-      if(millis() - tiempos > 4000) break;
+      if(millis() - tiempos > 4000 && abs((yaw0 - gyro.getAlpha()).get()) < 0.1) break;
       delay(2);
 
     }
 
     rotation.resetSumShaft();
 
-    motors.move(0,0);
-    delay(500);
   }
 
 void loop() {
@@ -120,10 +116,7 @@ void loop() {
   //Ejecutar PID Recto
   straight.check();
 
-delay(2); return;
-  if (sharps.get(Dirs::Front) > 160) {
-    motors.move(0, -0.2);
-    delay(400);
+  if (sharps.get(Dirs::Front) > 200) {
 
     if (right) {
       testTurn(M_PI_4, true);

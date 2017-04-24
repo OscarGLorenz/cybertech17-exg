@@ -1,25 +1,25 @@
 /*
- * Queue.h
- *
- * Copyright 2017 oscar <oscar@oscar-HP>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- * MA 02110-1301, USA.
- *
- *
- */
+* Queue.h
+*
+* Copyright 2017 oscar <oscar@oscar-HP>
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+* MA 02110-1301, USA.
+*
+*
+*/
 
 
 #ifndef QUEUE_H
@@ -85,9 +85,9 @@ public:
 		//que el pedido y devuelve este valor
 		while (itr.hasNext()) {
 			if (i == index)
-				return itr.next();
+			return itr.next();
 			else
-				itr.next();
+			itr.next();
 			i++;
 		}
 		return itr.next();
@@ -101,7 +101,7 @@ public:
 		//que el pedido y devuelve este valor
 		while (itr.hasNext()) {
 			if (itr.next() == object)
-				return true;
+			return true;
 		}
 		return false;
 	}
@@ -116,6 +116,13 @@ public:
 			pushBack(array[i]);
 		}
 	}
+	void appendQueue(Queue<T> queue) {
+		QueueIterator<T> itr = queue.getIterator();
+		while(itr.hasNext()) {
+			pushBack(itr.next());
+		}
+	}
+
 };
 
 //Nodo, no se usa directamente
@@ -155,7 +162,7 @@ public:
 		if (first) {
 			return node != nullptr;
 		} else
-			return node->_next != nullptr;
+		return node->_next != nullptr;
 	}
 
 	//Devuelve el valor del siguiente nodo y avanza una posición
@@ -172,25 +179,25 @@ public:
 };
 
 /* EJEMPLO
-    //Cola de enteros
-	Queue<int> queue;
+//Cola de enteros
+Queue<int> queue;
 
-	//Añadir números
-	queue.pushBack(4);
-	queue.pushBack(8);
-	queue.pushBack(9);
+//Añadir números
+queue.pushBack(4);
+queue.pushBack(8);
+queue.pushBack(9);
 
-	//Método típico para iterar, ineficiente
-	for (size_t i = 0; i < queue.size(); i++) {
-		Serial,println(queue.get(i));
-	}
+//Método típico para iterar, ineficiente
+for (size_t i = 0; i < queue.size(); i++) {
+Serial,println(queue.get(i));
+}
 
-	//Crear iterador, método eficiente para iterar
-	QueueIterator<int> itr = queue.getIterator();
+//Crear iterador, método eficiente para iterar
+QueueIterator<int> itr = queue.getIterator();
 
-	while (itr.hasNext()) {
-		Serial,println(itr.next());
-	}
+while (itr.hasNext()) {
+Serial,println(itr.next());
+}
 */
 
 #endif

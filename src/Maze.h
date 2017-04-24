@@ -13,7 +13,7 @@
 #include "Debug/Debug.h"
 
 Maze mazeObj;
-MazeIterator mazeItr(mazeObj.getStart());
+MazeIterator mazeItr(&mazeObj);
 
 Sharps sharps((unsigned char []) {FRONT_SHARP, LEFT_SHARP, BACK_SHARP, RIGHT_SHARP}, 0.8);
 
@@ -96,10 +96,13 @@ void testTurn(double value,bool right) {
 
 void knownMaze(Queue<Dirs> dirs) {
   QueueIterator<Dirs> itr = dirs.getIterator();
+  long int noRepetir = millis();
   while(itr.hasNext()) {
     Dirs now = itr.next();
     sharps.check();
     long int times;
+
+    if (millis() - noRepetir < 0) continue;
 
     switch (now) {
       case Dirs::Front:
@@ -133,7 +136,7 @@ void knownMaze(Queue<Dirs> dirs) {
       }
 
       motors.move(0,0.15);
-      delay(400);
+      delay(200);
       testTurn(-M_PI_2, false);
 
       times = millis();
@@ -157,7 +160,7 @@ void knownMaze(Queue<Dirs> dirs) {
       }
 
       motors.move(0,0.15);
-      delay(400);
+      delay(200);
       testTurn(M_PI_2, true);
 
       times = millis();
@@ -180,8 +183,13 @@ void knownMaze(Queue<Dirs> dirs) {
         sharps.check();
       }
 
-      testTurn(M_PI, true);
-
+      if(sharps.get(Dirs::Left) > sharps.get(Dirs::Right)) {
+        testTurn(M_PI_2,true);
+        testTurn(M_PI_2,true);
+      } else {
+        testTurn(-M_PI_2,false);
+        testTurn(-M_PI_2,false);
+      }
       break;
     }
 
@@ -189,34 +197,47 @@ void knownMaze(Queue<Dirs> dirs) {
   }
 }
 
-void store(Queue<Dirs> dirs) {
+void store(Queue<Movement> dirs) {
   EEPROM.put(0x40,(uint8_t) dirs.size());
 
-  QueueIterator<Dirs> itrDirs = dirs.getIterator();
+  QueueIterator<Movement> itrDirs = dirs.getIterator();
   int i = 1;
   while(itrDirs.hasNext()) {
     char c = 'A';
-    switch(itrDirs.next()) {
-      case Dirs::Front:
-      c = 'F';
-      break;
-      case Dirs::Left:
-      c = 'L';
-      break;
-      case Dirs::Right:
-      c = 'R';
-      break;
-      case Dirs::Back:
-      c = 'B';
-      break;
+    Movement move = itrDirs.next();
+    if (move.type == Type::CHECK1) {
+      c = '1';
+    } else if (move.type == Type::CHECK2) {
+      c = '2';
+    } else if (move.type == Type::CHECK3) {
+      c = '3';
+    } else if (move.type == Type::CHECK4) {
+      c = '4';
+    } else if (move.type == Type::CHECK5) {
+      c = '5';
+    } else {
+      switch(move.dir) {
+        case Dirs::Front:
+        c = 'F';
+        break;
+        case Dirs::Left:
+        c = 'L';
+        break;
+        case Dirs::Right:
+        c = 'R';
+        break;
+        case Dirs::Back:
+        c = 'B';
+        break;
+      }
+      EEPROM.put(0x40+i*sizeof(char),c);
+      i++;
     }
-    EEPROM.put(0x40+i*sizeof(char),c);
-    i++;
   }
 }
 
-Queue<Dirs> restore() {
-  Queue<Dirs> dirs;
+Queue<Movement> restore() {
+  Queue<Movement> dirs;
   uint8_t size = EEPROM.get(0x40,size);
   char c;
 
@@ -236,31 +257,41 @@ Queue<Dirs> restore() {
       aux = Dirs::Back;
       break;
     }
-    dirs.pushBack(aux);
+    dirs.pushBack(Movement(Type::NORMAL,aux));
   }
-
-  QueueIterator<Dirs> itrDirs = dirs.getIterator();
-  while(itrDirs.hasNext()) {
-    char c = '\0';
-    switch(itrDirs.next()) {
-      case Dirs::Front:
-      c = 'F';
-      break;
-      case Dirs::Left:
-      c = 'L';
-      break;
-      case Dirs::Right:
-      c = 'R';
-      break;
-      case Dirs::Back:
-      c = 'B';
-      break;
-    }
-    Serial.printtab(c);
-  }
-  Serial.println();
 
   return dirs;
+}
+
+
+void showDir(Queue<Movement> dirs) {
+  QueueIterator<Movement> itrDirs = dirs.getIterator();
+  while(itrDirs.hasNext()) {
+    Movement mov = itrDirs.next();
+    char c = '\0';
+    if (mov.type == Type::CHECK1) {
+      c = '1';
+    } else if (mov.type == Type::CHECK1) {
+      c = '2';
+    } else {
+      switch(mov.dir) {
+        case Dirs::Front:
+        c = 'F';
+        break;
+        case Dirs::Left:
+        c = 'L';
+        break;
+        case Dirs::Right:
+        c = 'R';
+        break;
+        case Dirs::Back:
+        c = 'B';
+        break;
+      }
+      Serial.printtab(c);
+    }
+  }
+  Serial.println();
 }
 
 
@@ -278,18 +309,8 @@ void read() {//Contar lineas
   if (millis()-ref > 300 && countmoves >= 1) { //¿Hemos abandonado un grupo de lineas?
     switch (countmoves) {
       case 1:
-      giros.pushBack('X');
-      mazeItr.move(Dirs::Front, Type::EXIT);
-      giros.pushBack('B');
-      mazeItr.move(Dirs::Back, Type::NORMAL);
-
-      testTurn(M_PI_2,true);
-      testTurn(M_PI_2,true);
-      break;
-
-      case 2:
       giros.pushBack('E');
-      mazeItr.move(Dirs::Front, Type::ENTRY);
+      mazeItr.move(Dirs::Front, Type::CHECK1);
       motors.rotate(0);
       delay(50);
 
@@ -300,13 +321,12 @@ void read() {//Contar lineas
       }
 
       Serial.println("SOLVING MAZE.....");
-      Queue<Dirs> dirs = mazeObj.solve();
-      showDirs(dirs);
-      store(dirs);
+      Queue<Movement> movs = mazeObj.solver();
+      store(movs);
 
       Serial.println("RESTORING DATA.....");
-      Queue<Dirs> checkDirs = restore();
-      showDirs(checkDirs);
+      Queue<Movement> movs2 = restore();
+      showDir(movs2);
 
       while(1) {delay(250);}
       break;
