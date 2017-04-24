@@ -25,6 +25,8 @@ Angle yaw0(0);
 
 Queue<char> giros;
 
+Queue<Type> checkpoints;
+
 //Motores
 #define DUTY 200
 Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
@@ -94,26 +96,27 @@ void testTurn(double value,bool right) {
 #define THRESHOLD_RIGHT 80
 #define THRESHOLD_LEFT 80
 
-void knownMaze(Queue<Dirs> dirs) {
-  QueueIterator<Dirs> itr = dirs.getIterator();
+void knownMaze(Queue<Movement> movs) {
+  QueueIterator<Movement> itr = movs.getIterator();
   long int noRepetir = millis();
   while(itr.hasNext()) {
-    Dirs now = itr.next();
+    Movement move = itr.next();
+
+    Dirs now = move.dir;
     sharps.check();
     long int times;
 
     if (millis() - noRepetir < 0) continue;
+    if (move.type != Type::NORMAL) continue;
 
     switch (now) {
       case Dirs::Front:
-
       while (sharps.get(Dirs::Left) > THRESHOLD_LEFT && sharps.get(Dirs::Right) > THRESHOLD_RIGHT ) {
         gyro.check();
         straight.check();
         delay(2);
         sharps.check();
       }
-
       times = millis();
       while(millis() - times < 1000) {
         gyro.check();
@@ -121,24 +124,19 @@ void knownMaze(Queue<Dirs> dirs) {
         delay(2);
         sharps.check();
       }
-
-
       break;
 
 
       case Dirs::Left:
-
       while (sharps.get(Dirs::Left) > THRESHOLD_LEFT) {
         gyro.check();
         straight.check();
         delay(2);
         sharps.check();
       }
-
       motors.move(0,0.15);
       delay(200);
       testTurn(-M_PI_2, false);
-
       times = millis();
       while(millis() - times < 800) {
         gyro.check();
@@ -146,23 +144,18 @@ void knownMaze(Queue<Dirs> dirs) {
         delay(2);
         sharps.check();
       }
-
       break;
 
-
       case Dirs::Right:
-
       while (sharps.get(Dirs::Right) > THRESHOLD_RIGHT) {
         gyro.check();
         straight.check();
         delay(2);
         sharps.check();
       }
-
       motors.move(0,0.15);
       delay(200);
       testTurn(M_PI_2, true);
-
       times = millis();
       while(millis() - times < 500) {
         gyro.check();
@@ -170,19 +163,15 @@ void knownMaze(Queue<Dirs> dirs) {
         delay(2);
         sharps.check();
       }
-
       break;
 
-
       case Dirs::Back:
-
       while (sharps.get(Dirs::Right) < THRESHOLD_FRONT) {
         gyro.check();
         straight.check();
         delay(2);
         sharps.check();
       }
-
       if(sharps.get(Dirs::Left) > sharps.get(Dirs::Right)) {
         testTurn(M_PI_2,true);
         testTurn(M_PI_2,true);
@@ -192,7 +181,6 @@ void knownMaze(Queue<Dirs> dirs) {
       }
       break;
     }
-
     delay(2);
   }
 }
@@ -263,7 +251,6 @@ Queue<Movement> restore() {
   return dirs;
 }
 
-
 void showDir(Queue<Movement> dirs) {
   QueueIterator<Movement> itrDirs = dirs.getIterator();
   while(itrDirs.hasNext()) {
@@ -294,7 +281,6 @@ void showDir(Queue<Movement> dirs) {
   Serial.println();
 }
 
-
 void read() {//Contar lineas
   static bool overSlash = false; //Variable para situacion de linea
 
@@ -308,8 +294,14 @@ void read() {//Contar lineas
 
   if (millis()-ref > 300 && countmoves >= 1) { //¿Hemos abandonado un grupo de lineas?
     switch (countmoves) {
+      // case 1: mazeItr.move(Dirs::Front, Type::CHECK1); if(!checkpoints.has(Type::CHECK1)) break;
+      // case 2: mazeItr.move(Dirs::Front, Type::CHECK2); if(!checkpoints.has(Type::CHECK2)) break;
+      // case 3: mazeItr.move(Dirs::Front, Type::CHECK3); if(!checkpoints.has(Type::CHECK3)) break;
+      // case 4: mazeItr.move(Dirs::Front, Type::CHECK4); if(!checkpoints.has(Type::CHECK4)) break;;
+      // case 5: mazeItr.move(Dirs::Front, Type::CHECK5); if(!checkpoints.has(Type::CHECK5)) break;
+      //if(checkpoints.size() >= 5) TERMINOSE Y GUARDAR ABAJO ESTÁ
       case 1:
-      giros.pushBack('E');
+      giros.pushBack('1');
       mazeItr.move(Dirs::Front, Type::CHECK1);
       motors.rotate(0);
       delay(50);
@@ -384,15 +376,17 @@ void setup() {
   qtrrc.calibratedMaximumOn = max;
   qtrrc.calibratedMinimumOn = min;
 
+  static bool iknow = false;
   while(millis() < 4000) {
     gyro.check();
     delay(2);
     yaw0 = gyro.getAlpha();
     sharps.check();
-    Serial.println(qtrrc.readLine(sensorValues));
-
+    if (!digitalRead(BUTTON)) iknow = true;
   }
   yaw0 = gyro.getAlpha();
+
+  if(iknow) knownMaze(restore());
 
 }
 

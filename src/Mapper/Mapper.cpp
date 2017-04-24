@@ -1,5 +1,46 @@
 #include "Mapper.h"
-#include "Global.h"
+
+Dirs clockWise(Dirs dir) {
+    switch (dir) {
+    case Dirs::Front:
+        return Dirs::Right;
+    case Dirs::Left:
+        return Dirs::Front;
+    case Dirs::Right:
+        return Dirs::Back;
+    case Dirs::Back:
+        return Dirs::Left;
+    }
+    return Dirs::Front;
+}
+
+Dirs cntClockWise(Dirs dir) {
+    switch (dir) {
+    case Dirs::Front:
+        return Dirs::Left;
+    case Dirs::Left:
+        return Dirs::Back;
+    case Dirs::Right:
+        return Dirs::Front;
+    case Dirs::Back:
+        return Dirs::Right;
+    }
+    return Dirs::Front;
+}
+
+Dirs reverseD(Dirs dir) {
+    switch (dir) {
+    case Dirs::Front:
+        return Dirs::Back;
+    case Dirs::Left:
+        return Dirs::Right;
+    case Dirs::Right:
+        return Dirs::Left;
+    case Dirs::Back:
+        return Dirs::Front;
+    }
+    return Dirs::Front;
+}
 
 Cell::Cell(Dirs from, Cell * fromCell, Type t, int index) {
     front = nullptr;
@@ -69,8 +110,6 @@ int Cell::connections() {
     n += (back != nullptr) ? 1 : 0;
     return n;
 }
-
-
 
 //Nuevo iterador, celda seleccionada, direccion seleccionada
 MazeIterator::MazeIterator(Maze * m, Dirs head) {
@@ -205,22 +244,22 @@ void MazeIterator::move(Dirs dir, Type type) {
         break;
     }
     if (now->point(heading) == nullptr) {
-        now->change(heading, new Cell(::reverse(heading), now, type, ++(maze->count)));
+        now->change(heading, new Cell(reverseD(heading), now, type, ++(maze->count)));
     }
     now = now->point(heading);
 }
 
 //+180º a heading
-void MazeIterator::reverse(void) { heading = ::reverse(heading); }
+void MazeIterator::reverse(void) { heading = reverseD(heading); }
 
 //-90º a heading
 void MazeIterator::ckWise(void) {
-    heading = ::ckWise(heading);
+    heading = clockWise(heading);
 }
 
 //+90º a heading
 void MazeIterator::cntWise(void) {
-    heading = ::cntCkWise(heading);
+    heading = cntClockWise(heading);
 }
 
 //Devuelve numero de conexiones en la celda actual
@@ -250,11 +289,11 @@ void MazeIterator::deleteAndMove(bool rightWise) {
 Dirs MazeIterator::relative(Dirs after, Dirs before) {
     if (after == before)
         return Dirs::Front;
-    if (after == ::ckWise(before))
+    if (after == clockWise(before))
         return Dirs::Right;
-    if (after == ::cntCkWise(before))
+    if (after == cntClockWise(before))
         return Dirs::Left;
-    if (after == ::reverse(before))
+    if (after == reverseD(before))
         return Dirs::Back;
     return Dirs::Front;
 }
