@@ -15,7 +15,7 @@
 //Giroscopio
 Gyroscope gyro(INTERRUPT_GYRO);
 
-Sharps sharps((unsigned char []) {FRONT_SHARP, LEFT_SHARP, BACK_SHARP, RIGHT_SHARP}, 0.8);
+Sharps sharps((unsigned char []) {FRONT_SHARP, LEFT_SHARP, BACK_SHARP, RIGHT_SHARP}, 0.6);
 
 //Variable ángulo, se usa como referncia en varias tareas
 Angle yaw0(0);
@@ -53,20 +53,21 @@ PID rotation(inputR,outputR,0.2);
 
 
 //PID STRAIGHT
-#define STRAIGHT_KP 1.2
-#define STRAIGHT_KI 0.002
-#define STRAIGHT_KD 0.02
+#define STRAIGHT_KP 1.5
+#define STRAIGHT_KI 0
+#define STRAIGHT_KD 0.05
 #define STRAIGHT_SAT 0.20
 PID straight([]()-> double {return (yaw0-gyro.getAlpha()).get();}, [](double dir){motors.move(constrain(dir,-1.0,1.0), STRAIGHT_SAT);}, 1);
 //PID STRAIGHT
 
+#define LINE_SAT 1.0
 //PID SIGUELINEAS
 double input(void) {
   return (position - 3500.0)/3500.0;
 }
 
 void output(double dir) {
-  motors.move(-constrain(dir,-1.0,1.0), 0.2);
+  motors.move(-constrain(dir,-1.0,1.0), LINE_SAT);
 }
 #define LINE_KP 2
 #define LINE_KI 0
@@ -104,17 +105,11 @@ PID pid(input,output);
   }
 
 void goBack() {
-  long unsigned int now = millis();
-
-  straight.out = [](double dir){motors.move(-constrain(dir,-1.0,1.0), -STRAIGHT_SAT);};
-
-  yaw0 = gyro.getAlpha();
-  while(millis() - now < 700) {
-    gyro.check();
-    straight.check();
-    delay(2);
-  }
-  motors.rotate(0);
+  //straight.out = [](double dir){motors.move(-constrain(dir,-1.0,1.0), -STRAIGHT_SAT);};
+  motors.move(0,0); delay(100);
+  motors.move(0,-1); delay(600);
+  motors.move(0,1); delay(50);
+  motors.move(0,0); delay(50);
   Serial.println("Back");
 }
 //MOVIMIENTOS
@@ -213,7 +208,7 @@ void setup(){
 
   //CONSTANTES PID
   straight.setKp(STRAIGHT_KP);
-  straight.setKp(STRAIGHT_KI);
+  straight.setKi(STRAIGHT_KI);
   straight.setKd(STRAIGHT_KD);
 
   pid.setKp(LINE_KP);
@@ -235,26 +230,24 @@ void setup(){
   Serial.println("Calibration finished");
   //CALIBRACIÓN
 
-  ready();
-
   //Inicio giroscopio
   gyro.init();
   //Ángulo inicial
 
-  yaw0 = gyro.getAlpha();
-
-  while(millis() < 4000) {
-    gyro.check();
-    delay(2);
-    yaw0 = gyro.getAlpha();
-
-  }
-  yaw0 = gyro.getAlpha();
-
   ready();
 
-}
 
+  // while(millis() < 4000) {
+  //   gyro.check();
+  //   delay(2);
+  //   yaw0 = gyro.getAlpha();
+  // }
+  flag(); delay(100);
+  sharps.check();
+
+
+}
+long int count = millis();
 void loop() {
   position = (int) qtrrc.readLine(sensorValues); //Leer línea
   pid.check(); //Ejecutar pid linea
@@ -263,6 +256,6 @@ void loop() {
   gyro.check();//Leer giroscopio
 
   sharps.check();
-  while(sharps.get(Dirs::Front) > 160) execute();
+  if(sharps.get(Dirs::Front) > 200 && millis() - count > 2000) execute();
   delay(2);
 }

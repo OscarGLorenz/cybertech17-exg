@@ -375,6 +375,7 @@ void setup() {
 
   qtrrc.calibratedMaximumOn = max;
   qtrrc.calibratedMinimumOn = min;
+  Serial.end();
 
   static bool iknow = false;
   while(millis() < 4000) {
@@ -385,8 +386,9 @@ void setup() {
     if (!digitalRead(BUTTON)) iknow = true;
   }
   yaw0 = gyro.getAlpha();
+  Serial.begin(9600);
 
-  if(iknow) knownMaze(restore());
+  if(iknow) {knownMaze(restore()); exit(0);}
 
 }
 
@@ -415,8 +417,6 @@ void loop() {
         yaw0 = gyro.getAlpha();
         motors.move(0,-0.15);
         delay(350);
-      } else if (sharps.get(Dirs::Left) < 40 && sharps.get(Dirs::Front) < 40 && sharps.get(Dirs::Left) < 40) {
-        //¿salida?
       }
 
       testTurn(M_PI_2,true);
@@ -448,7 +448,7 @@ void loop() {
       }
       noRepetir = millis();
 
-    } else if(sharps.get(Dirs::Left) < THRESHOLD_LEFT && millis() - noRepetir > 800) {
+    } else if((sharps.get(Dirs::Left) < THRESHOLD_LEFT || sharps.get(Dirs::Right) < THRESHOLD_LEFT)  && millis() - noRepetir > 1500 && sharps.get(Dirs::Front) < 140) {
       giros.pushBack('F');
       mazeItr.move(Dirs::Front, Type::NORMAL);
       noRepetir = millis();
