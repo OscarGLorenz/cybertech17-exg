@@ -35,13 +35,13 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
 
     //PID ROTATION
     //Lectura de error de girar
-    #define ROTATION_KP 0.35
+    #define ROTATION_KP 0.3
     #define ROTATION_KI 0
-    #define ROTATION_KD 0.005
+    #define ROTATION_KD 0.08
     #define ROTATION_KF 0.80
     #define ROTATION_SAT 0.20
     #define ROTATION_DEAD 0.11
-    #define ROTATION_THRESHOLD 0.10
+    #define ROTATION_THRESHOLD 0.04
     PID rotation(
       []()-> double {return (yaw0-gyro.getAlpha()).get();},
       [](double dir){motors.rotate(-constrain(dir,-ROTATION_SAT,ROTATION_SAT));},
@@ -61,11 +61,23 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     1);
   //PID STRAIGHT
 
+  //PID STRAIGHT
+  #define BACK_KP 1.2
+  #define BACK_KI 0.005
+  #define BACK_KD 0.02
+  #define BACK_SAT 0.20
+  PID back(
+    []()-> double {return (yaw0-gyro.getAlpha()).get();},
+    [](double dir){motors.move(-constrain(dir,-1.0,1.0), -BACK_SAT);},
+    1);
+  //PID STRAIGHT
+
 
   void testTurn(double value,bool right) {
+
   long int tiempos = millis();
     motors.move(0,0);
-    delay(500);
+    delay(100);
 
     yaw0 = yaw0 + value;
     //Angle yawr = yaw0;
@@ -74,19 +86,22 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     Serial.println("Al" + String(gyro.getAlpha().get()) + " yaw0" + String(yaw0.get()) + " yaw0-al" + String((gyro.getAlpha() - yaw0).get()));
 
     int c = 0;
-    while(c < 15 ) {
+    while(c < 5) {
       gyro.check();
       rotation.check();
 
       if(abs((yaw0 - gyro.getAlpha()).get()) < ROTATION_THRESHOLD) c++;
-      if(millis() - tiempos > 4000) break;
+      if(millis() - tiempos > 8000) break;
+      if(abs((yaw0 - gyro.getAlpha()).get()) < 0.02) {
+        motors.rotate((value > 0) ? -0.2 : 0.2); delay(20); break;
+      }
       delay(2);
     }
 
     rotation.resetSumShaft();
 
     motors.move(0,0);
-    delay(500);
+    delay(100);
   }
 
 
@@ -97,8 +112,12 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     //Configuración PIDs
     straight.setKp(STRAIGHT_KP);
     straight.setKi(STRAIGHT_KI);
-
     straight.setKd(STRAIGHT_KD);
+
+    //Configuración PIDs
+    back.setKp(BACK_KP);
+    back.setKi(BACK_KI);
+    back.setKd(BACK_KD);
 
     rotation.setKp(ROTATION_KP);
     rotation.setKi(ROTATION_KI);
@@ -122,28 +141,21 @@ QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR,
     }
     yaw0 = gyro.getAlpha();
 
-while(1) {
-  gyro.check();
-  straight.check();
-  sharps.check();
-  delay(2);
-}
+    ready();
+    flag();
+
   }
 
-#define THRESHOLD_RIGHT 120
-#define THRESHOLD_BACK 180
-#define FRONT_DELAY 200
+#define THRESHOLD_RIGHT 250//200
+#define THRESHOLD_BACK 210
+#define FRONT_DELAY 310
   void loop() {
     //Ejecutar PID Recto
     gyro.check();
 
-    straight.check();
-
     sharps.check();
-
-    //limitedSerial(sharps.get(Dirs::Right), 500);
-
-    if(sharps.get(Dirs::Right) > THRESHOLD_RIGHT) {
+    straight.check();
+    if(sharps.get(Dirs::Right) < THRESHOLD_RIGHT) {
       yaw0 = gyro.getAlpha();
       long int times = millis();
       while (millis() - times < FRONT_DELAY) {
@@ -155,9 +167,7 @@ while(1) {
 
       testTurn(-M_PI_2, false);
 
-      straight.out = [](double dir){motors.move(-constrain(dir,-1.0,1.0), -STRAIGHT_SAT);};
-      rotation.setDeadZone(0);
-      rotation.setKp(0.2);
+
 
       for(int i = 0; i < 10; i++) {
         sharps.check();
@@ -168,7 +178,7 @@ while(1) {
 
       while (sharps.get(Dirs::Back) < THRESHOLD_BACK) {
         gyro.check();
-        straight.check();
+        back.check();
         sharps.check();
         delay(2);
       }

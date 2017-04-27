@@ -21,7 +21,7 @@ Sharps sharps((unsigned char []) {FRONT_SHARP, LEFT_SHARP, BACK_SHARP, RIGHT_SHA
 Angle yaw0(0);
 
 //Motores
-#define DUTY 200
+#define DUTY 250
 Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
 
 //Sensor de línea
@@ -104,13 +104,40 @@ PID pid(input,output);
     motors.move(0,0);
   }
 
+void turn360() {
+  yaw0 = gyro.getAlpha();
+  //Giro, si conseguimos el ángulo deseado y lo leemos CHECKCOUNT veces salimos del while
+
+  motors.move(1, 0.3); delay(100);
+
+  unsigned long int tiempos = millis();
+  int c = 0;
+  while(c < 40) {
+    //Salida por pantalla de ángulo actual y objetivo
+    //limitedSerial(String(gyro.getAlpha().get()) + " " + String(yaw0.get()), 250);
+
+    //Lectura giroscopio
+    gyro.check();
+
+    //Ejecutamos PID rotación
+    rotation.check();
+
+    delay(2);
+
+    //Si el error es menor que RAD_TOLERANCE sumamos
+    if(abs((yaw0 - gyro.getAlpha()).get()) < ROTATION_THRESHOLD) c++;
+    if(millis() - tiempos > 3000) break;
+  }
+  motors.move(0,0);
+}
+
+
 void goBack() {
   //straight.out = [](double dir){motors.move(-constrain(dir,-1.0,1.0), -STRAIGHT_SAT);};
   motors.move(0,0); delay(100);
   motors.move(0,-1); delay(600);
   motors.move(0,1); delay(50);
   motors.move(0,0); delay(50);
-  Serial.println("Back");
 }
 //MOVIMIENTOS
 
@@ -118,6 +145,12 @@ void goBack() {
 Queue<int> mov; //Guardamos movimientos
 
 void execute() {
+  motors.setMax(255);
+  Serial.end();
+  digitalWrite(BLUE_LED, 0);
+  motors.move(0,-1); delay(200);
+  motors.move(0,0); delay(100);
+
   yaw0 = gyro.getAlpha();
 
   turn(M_PI);
@@ -137,9 +170,12 @@ void execute() {
 delay(1000);
 
   while(itr_mov.hasNext()) { //Iteramos por los movimientos y los hacemos
+    digitalWrite(BLUE_LED, 1);
+    delay(150);
+    digitalWrite(BLUE_LED, 0);
     switch(itr_mov.next()) {
       case 1:
-      turn(M_PI);
+      turn360();
       break;
       case 2:
       goBack();
@@ -244,10 +280,9 @@ void setup(){
   // }
   flag(); delay(100);
   sharps.check();
-
+  motors.setMax(180);
 
 }
-long int count = millis();
 void loop() {
   position = (int) qtrrc.readLine(sensorValues); //Leer línea
   pid.check(); //Ejecutar pid linea
@@ -256,6 +291,6 @@ void loop() {
   gyro.check();//Leer giroscopio
 
   sharps.check();
-  if(sharps.get(Dirs::Front) > 200 && millis() - count > 2000) execute();
+  if(sharps.get(Dirs::Front) > 250) execute();
   delay(2);
 }
