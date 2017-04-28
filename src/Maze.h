@@ -16,22 +16,15 @@ Maze mazeObj;
 MazeIterator mazeItr(&mazeObj);
 
 Sharps sharps((unsigned char []) {FRONT_SHARP, LEFT_SHARP, BACK_SHARP, RIGHT_SHARP}, 0.6);
-
-//Giroscopio
 Gyroscope gyro(INTERRUPT_GYRO);
-
-//Variable ángulo, se usa como referncia en varias tareas
 Angle yaw0(0);
 
 Queue<char> giros;
-
 Queue<Type> checkpoints;
 
-//Motores
 #define DUTY 200
 Motors motors((char []) {PWM1B, PWM1A}, (char []) {PWM2B, PWM2A}, DUTY);
 
-//Sensor de línea
 QTRSensorsRC qtrrc((unsigned char[]) {PIN1_QTR,PIN2_QTR, PIN3_QTR, PIN4_QTR, PIN5_QTR, PIN6_QTR, PIN7_QTR,PIN8_QTR}, 8, 2500);
 unsigned int sensorValues[8];
 int position = 3500;
@@ -49,7 +42,7 @@ PID rotation([]()-> double {return (yaw0-gyro.getAlpha()).get();}, [](double dir
 //PID ROTATION
 
 //PID STRAIGHT
-#define STRAIGHT_KP 3
+#define STRAIGHT_KP 4
 #define STRAIGHT_KI 0.12
 #define STRAIGHT_KD 0.05
 #define STRAIGHT_SAT 0.20
@@ -125,18 +118,57 @@ void testTurn(double value,bool right) {
 #define THRESHOLD_RIGHT 80
 #define THRESHOLD_LEFT 80
 
+void queHay(MazeIterator &itrMaze) {
+    if(itrMaze.actual()->type == Type::NORMAL)
+        Serial.print("NORMAL ");
+    else if(itrMaze.actual()->type == Type::ENTRY)
+        Serial.print("ENTRY ");
+    else if(itrMaze.actual()->type == Type::CHECK1)
+        Serial.print("CHECK1 ");
+    else if(itrMaze.actual()->type == Type::CHECK2)
+        Serial.print("CHECK2 ");
+    else if(itrMaze.actual()->type == Type::CHECK3)
+        Serial.print("CHECK3 ");
+    else if(itrMaze.actual()->type == Type::CHECK4)
+        Serial.print("CHECK4 ");
+
+    Serial.printtab(itrMaze.actual()->id);
+
+    if(itrMaze.actual()->front != nullptr)
+        Serial.print('F');
+    if(itrMaze.actual()->left != nullptr)
+        Serial.print('L');
+    if(itrMaze.actual()->right != nullptr)
+        Serial.print('R');
+    if(itrMaze.actual()->back != nullptr)
+        Serial.print('B');
+}
+
 void knownMaze(Queue<Movement> movs) {
   QueueIterator<Movement> itr = movs.getIterator();
   long int noRepetir = millis();
+  itr.next(); // NOS SALTAMOS EL PRIMERO QUE ES UN FRONT
   while(itr.hasNext()) {
+    BRK
     Movement move = itr.next();
-    showDir(movs);
     Dirs now = move.dir;
     sharps.check();
-    long int times;
+    long int times = millis();
 
-    if (millis() - noRepetir < 800) {delay(2); continue;}
-    if (move.type != Type::NORMAL) {delay(2); continue;}
+    while (millis() - noRepetir < 800) {
+      gyro.check();
+      straight.check();
+      delay(2);
+      sharps.check();
+    }
+
+    if (move.type != Type::NORMAL) {
+      gyro.check();
+      straight.check();
+      delay(2);
+      sharps.check();
+      continue;
+    }
 
     switch (now) {
       case Dirs::Front:
@@ -210,6 +242,7 @@ void knownMaze(Queue<Movement> movs) {
       }
       break;
     }
+    noRepetir = millis();
     delay(2);
   }
 }
@@ -245,18 +278,48 @@ void read() {//Contar lineas
         Serial.printtab(itr.next());
       }
 
-      Serial.println("SOLVING MAZE.....");
-      Queue<Movement> movs = mazeObj.solver();
-      showDir(movs);
 
+Serial.end();
       while(1) {
         if(!digitalRead(BUTTON)) {
+          Serial.begin(9600);
+          Serial.println("SOLVING MAZE.....");
+          MazeIterator mazeItr2(&mazeObj);
+          for(; mazeItr2.actual()->type != Type::CHECK1; mazeItr2.movePriority(true)) {
+               queHay(mazeItr2); Serial.println();
+           }
+           queHay(mazeItr2);
+           Serial << endl;
+          Queue<Movement> movs = mazeObj.solver();
+          showDir(movs);
+
+          Serial << "BIGOTITOS SABE LABERINTO" << endl;
           ready();
+
+          long int times = millis();
+          while(millis() - times < 4000) {
+            gyro.check();
+            delay(2);
+            yaw0 = gyro.getAlpha();
+            sharps.check();
+            limitedSerial("Sha " + String(sharps.get(Dirs::Right)) + " " + String(sharps.get(Dirs::Left)) + " " + String(sharps.get(Dirs::Front)) ,150);
+          }
+
+          yaw0 = gyro.getAlpha();
+
           flag();
           knownMaze(movs);
-          exit(0);
+
+          while(1) {
+            gyro.check();
+            delay(2);
+            yaw0 = gyro.getAlpha();
+            sharps.check();
+            limitedSerial("Sha " + String(sharps.get(Dirs::Right)) + " " + String(sharps.get(Dirs::Left)) + " " + String(sharps.get(Dirs::Front)) ,150);
+          }
+
         }
-        delay(2); pinMode(BUTTON, INPUT);
+        delay(2);
       }
     }
 
@@ -323,6 +386,7 @@ void setup() {
 
   yaw0 = gyro.getAlpha();
   flag();
+  mazeItr.move(Dirs::Front, Type::NORMAL);
 
 }
 
@@ -353,7 +417,7 @@ void loop() {
       if (sharps.get(Dirs::Front) > THRESHOLD_FRONT){
         yaw0 = gyro.getAlpha();
         motors.move(0,-0.15);
-        delay(350);
+        delay(300);
       }
 
       testTurn(M_PI_2,true);
@@ -365,7 +429,7 @@ void loop() {
     } else if (sharps.get(Dirs::Front) > THRESHOLD_FRONT){
       yaw0 = gyro.getAlpha();
       motors.move(0,-0.15);
-      delay(350);
+      delay(300);
 
       if(sharps.get(Dirs::Left) < THRESHOLD_LEFT) {
         testTurn(-M_PI_2,false);
@@ -390,7 +454,7 @@ void loop() {
       }
       noRepetir = millis();
 
-    } else if(sharps.get(Dirs::Left) < THRESHOLD_LEFT  && millis() - noRepetir > 800 && sharps.get(Dirs::Front) < 100 && (sharps.get(Dirs::Right) > 150)) {
+    } else if(sharps.get(Dirs::Left) < THRESHOLD_LEFT  && millis() - noRepetir > 1200 && sharps.get(Dirs::Front) < 100 && (sharps.get(Dirs::Right) > 115)) {
       giros.pushBack('F');
       Serial.println('F');
 

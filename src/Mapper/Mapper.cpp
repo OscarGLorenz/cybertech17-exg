@@ -355,25 +355,21 @@ Queue<Movement> Maze::solve(Type start, Type goal) {
 	MazeIterator killer(&copyMaze);
 
 	Dirs dir; Type type;
-	if (start == Type::ENTRY) {
-		killer.movePriority(true);
-	} else {
-		do {
-			killer.movePriority(true);
-			type = killer.actual()->type;
-		} while (type != start);
-	}
+	 if (start != Type::ENTRY) {
+	 	do {
+	 		type = killer.actual()->type;
+	 	} while (type != start);
+	 }
 
-	MazeIterator solver(killer);
+	 MazeIterator solver(killer);
 
 	do {
 		killer.movePriority(true);
-		type = killer.actual()->type;
-		if (type != goal && killer.actual()->connections() == 1) {
-			while (killer.connections() == 1)
-				killer.deleteAndMove(true);
-		}
-	} while (type != goal);
+	  type = killer.actual()->type;
+	  if (type != goal && killer.actual()->connections() == 1) {
+	 		while (killer.connections() == 1)	killer.deleteAndMove(true);
+	 	}
+ } while (type != goal);
 
 	Queue<Movement> moves;
 

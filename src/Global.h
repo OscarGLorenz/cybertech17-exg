@@ -100,4 +100,12 @@ private:
   unsigned char pins[4];
 };
 
+#define endl '\n';
+
+template<class T>
+HardwareSerial& operator<<(HardwareSerial& serial, const T& value) {
+  serial.print(value);
+  return serial;
+}
+
 #endif
